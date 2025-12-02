@@ -5,7 +5,7 @@ from datetime import datetime, UTC
 import uuid
 
 from  database.dbs import get_db
-from database.models import Company, User, Role, Permission
+from database.models import Company, CompanyUser, Role, Permission
 from schemas.CompanyScheme import CompanyCreate, CompanyResponse , CompanyUserResponse, UserCreate, PasswordChange, CompanyRoleCreate, CompanyRoleResponse
 # from app.dependencies.dependencies import get_current_super_admin_user
 # from app.utils.auth_utils import get_password_hash
@@ -23,27 +23,23 @@ router = APIRouter(prefix="/api/v1/companies", tags=["Companies"])
     status_code=status.HTTP_201_CREATED,
     dependencies=[Depends(get_current_super_admin_user)]
 )
-async def create_new_company_with_admin(
+async def create_new_company(
     company_data: CompanyCreate,
-    admin_data: UserCreate,
     db: Session = Depends(get_db)
 ):
     """
-    Creates a new company and its first super admin user.
+    Creates a new company. Only creates the company - no user is created.
+    The company super admin will be created separately and will have all permissions.
     This endpoint is for the main system admin.
     """
-    # 1. Check if company name or email already exists
+    # Check if company name or email already exists
     if db.query(Company).filter(Company.name == company_data.name).first():
         raise HTTPException(status_code=400, detail="Company name already registered.")
     if db.query(Company).filter(Company.email == company_data.email).first():
         raise HTTPException(status_code=400, detail="Company email already registered.")
-    
-    # 2. Check if the initial admin user's email already exists
-    if db.query(User).filter(User.email == admin_data.email).first():
-        raise HTTPException(status_code=400, detail="Admin email already in use.")
 
     try:
-        # 3. Create the new company
+        # Create the new company
         new_company = Company(
             id=str(uuid.uuid4()),
             name=company_data.name,
@@ -55,29 +51,6 @@ async def create_new_company_with_admin(
         db.add(new_company)
         db.commit()
         db.refresh(new_company)
-
-        # 4. Create the new company's admin user
-        hashed_password = bcrypt.hash(admin_data.password)
-        new_admin_user = User(
-            id=str(uuid.uuid4()),
-            full_name=admin_data.full_name,
-            email=admin_data.email,
-            phone_number=admin_data.phone_number,
-            password_hash=hashed_password,
-            created_at=datetime.now(UTC),
-            company_id=new_company.id  # Associate user with the new company
-        )
-
-        # 5. Assign the 'company_admin' role to the new user
-        company_admin_role = db.query(Role).filter(Role.name == "company_admin").first()
-        if not company_admin_role:
-            raise HTTPException(
-                status_code=500,
-                detail="System error: 'company_admin' role not found. Please create it."
-            )
-        new_admin_user.roles.append(company_admin_role)
-        db.add(new_admin_user)
-        db.commit()
         
         return new_company
 
@@ -128,39 +101,48 @@ async def delete_company(company_id: str, db: Session = Depends(get_db)):
 
 
 # get company members
-@router.get("/{company_id}/users", response_model=List[CompanyUserResponse], dependencies=[Depends(get_current_company_user)])
-async def get_company_users(company_id: str, db: Session = Depends(get_db)):
+@router.get("/users", response_model=List[CompanyUserResponse], dependencies=[Depends(get_current_company_user)])
+async def get_company_users(
+    db: Session = Depends(get_db),
+    current_user: CompanyUser = Depends(get_current_company_user)
+):
     """
-    Returns a list of users belonging to a specific company.
-    This endpoint is for company admins.
+    Returns a list of company users belonging to the current user's company.
+    Only company admins can access this.
+    Super admins cannot access company users - they can only manage companies.
     """
-    users = db.query(User).filter(User.company_id == company_id).all()
-    return users
+    company_users = db.query(CompanyUser).filter(CompanyUser.company_id == current_user.company_id).all()
+    return company_users
 
 
 
 @router.post('/company-user', dependencies=[Depends(get_current_company_user)])
 async def create_company_user(
     user_data: UserCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: CompanyUser = Depends(get_current_company_user)
 ):  
     """
-    Create a new user for a specific company.
-    This endpoint is for the main system admin.
+    Create a new user for the current user's company.
+    Only company admins can create users in their company.
+    Super admins cannot create company users - they can only manage companies.
     """
-    # Check if the user's email already exists
-    if db.query(User).filter(User.email == user_data.email).first():
-        raise HTTPException(status_code=400, detail="User email already in use.")
+    # Check if the company user's email already exists
+    if db.query(CompanyUser).filter(CompanyUser.email == user_data.email).first():
+        raise HTTPException(status_code=400, detail="Email already in use.")
+    
+    # Check if login_email already exists
+    if user_data.login_email and db.query(CompanyUser).filter(CompanyUser.login_email == user_data.login_email).first():
+        raise HTTPException(status_code=400, detail="Login email already in use.")
 
-    # Check if the specified company exists
-    company = db.query(Company).filter(Company.id == user_data.company_id).first()
-    if not company:
-        raise HTTPException(status_code=404, detail="Company not found.")
+    # Ensure user is being created in the same company as the current user
+    if user_data.company_id and user_data.company_id != current_user.company_id:
+        raise HTTPException(status_code=403, detail="You can only create users in your company.")
 
     try:
-        # Create the new user
+        # Create the new company user - always use current_user's company_id
         hashed_password = bcrypt.hash(user_data.password)
-        new_user = User(
+        new_company_user = CompanyUser(
             id=str(uuid.uuid4()),
             full_name=user_data.full_name,
             email=user_data.email,
@@ -168,21 +150,24 @@ async def create_company_user(
             phone_number=user_data.phone_number,
             password_hash=hashed_password,
             created_at=datetime.now(UTC),
-            company_id=user_data.company_id 
+            company_id=current_user.company_id  # Always use current user's company
         )
 
-        # Assign the specified role to the new user
-        role = db.query(Role).filter(Role.name == user_data.role_name).first()
+        # Assign the specified role to the new company user - must be from the same company
+        role = db.query(Role).filter(
+            Role.name == user_data.role_name,
+            Role.company_id == current_user.company_id
+        ).first()
         if not role:
             raise HTTPException(
                 status_code=400,
-                detail=f"Role '{user_data.role_name}' not found."
+                detail=f"Role '{user_data.role_name}' not found in your company."
             )
-        new_user.roles.append(role)
-        db.add(new_user)
+        new_company_user.roles.append(role)
+        db.add(new_company_user)
         db.commit()
         
-        return {"message": "User created successfully."}
+        return {"message": "Company user created successfully."}
 
     except Exception as e:
         db.rollback()

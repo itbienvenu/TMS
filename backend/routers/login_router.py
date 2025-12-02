@@ -7,10 +7,10 @@ from methods.functions import (
     create_access_token,
     send_email,
 )
-from methods.permissions import check_permission
+from methods.permissions import check_permission, get_current_company_user
 from schemas.LoginRegisteScheme import RegisterUser, LoginUser, UpdateUser, UserOut, CompanyLoginStart, CompanyLoginVerify
 from database.dbs import get_db
-from database.models import User, Payment, Role, LoginOTP
+from database.models import User, CompanyUser, Payment, Role, LoginOTP
 from datetime import datetime, UTC, timedelta
 from sqlalchemy.orm import Session
 from typing import List
@@ -28,17 +28,17 @@ async def company_login_start(
 ):
     """
     Step 1 of company login:
-    - User submits company-issued `login_email` and password.
+    - Company user submits company-issued `login_email` and password.
     - We verify password.
-    - We generate an OTP, persist it, and (you must) send it to the real `user.email`.
+    - We generate an OTP, persist it, and send it to the real `company_user.email`.
     """
-    user = db.query(User).filter(User.login_email == payload.login_email).first()
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    company_user = db.query(CompanyUser).filter(CompanyUser.login_email == payload.login_email).first()
+    if not company_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Company user not found")
 
     from methods.functions import verify_password  # avoid circular import at top
 
-    if not verify_password(payload.password, user.password_hash):
+    if not verify_password(payload.password, company_user.password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
     # Generate and store OTP
@@ -46,7 +46,7 @@ async def company_login_start(
     expires_at = datetime.now(UTC) + timedelta(minutes=10)
 
     otp_entry = LoginOTP(
-        user_id=user.id,
+        company_user_id=company_user.id,
         code=code,
         expires_at=expires_at,
         consumed=False,
@@ -54,10 +54,10 @@ async def company_login_start(
     db.add(otp_entry)
     db.commit()
 
-    # Send OTP via Gmail SMTP to the user's real email
-    if user.email:
+    # Send OTP via Gmail SMTP to the company user's real email
+    if company_user.email:
         send_email(
-            to_email=user.email,
+            to_email=company_user.email,
             subject="Your login OTP",
             body=f"Your OTP code is: {code}. It expires in 10 minutes.",
         )
@@ -72,16 +72,16 @@ async def company_login_verify(
 ):
     """
     Step 2 of company login:
-    - User submits company-issued `login_email` and the OTP code.
+    - Company user submits company-issued `login_email` and the OTP code.
     - If valid and not expired, issue a JWT token.
     """
-    user = db.query(User).filter(User.login_email == payload.login_email).first()
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    company_user = db.query(CompanyUser).filter(CompanyUser.login_email == payload.login_email).first()
+    if not company_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Company user not found")
 
     otp_entry = (
         db.query(LoginOTP)
-        .filter(LoginOTP.user_id == user.id, LoginOTP.code == payload.code, LoginOTP.consumed == False)  # noqa: E712
+        .filter(LoginOTP.company_user_id == company_user.id, LoginOTP.code == payload.code, LoginOTP.consumed == False)  # noqa: E712
         .order_by(LoginOTP.expires_at.desc())
         .first()
     )
@@ -96,7 +96,11 @@ async def company_login_verify(
     db.commit()
 
     token = create_access_token(
-        data={"sub": str(user.id), "company_id": str(user.company_id)},
+        data={
+            "sub": str(company_user.id),
+            "company_id": str(company_user.company_id),
+            "user_type": "company_user"
+        },
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
     )
 
@@ -112,87 +116,124 @@ async def register(user: RegisterUser, db: Session = Depends(get_db)):
     return create_user(db, user)
 
 @router.get("/me")
-async def get_users_me(current_user: User = Depends(get_current_user)):
-    role_names = [r.name for r in (current_user.roles or [])]
-    primary_role = role_names[0] if role_names else None
-
-    return {
-        "id": str(current_user.id),
-        "full_name": current_user.full_name,
-        "email": current_user.email,
-        "phone_number": current_user.phone_number,
-        "role": primary_role,   # single role for legacy clients
-        "roles": role_names
-    }
+async def get_users_me(current_user = Depends(get_current_user)):
+    """
+    Get current user info - works for both regular User and CompanyUser.
+    """
+    from database.models import CompanyUser
+    
+    if isinstance(current_user, CompanyUser):
+        role_names = [r.name for r in (current_user.roles or [])]
+        primary_role = role_names[0] if role_names else None
+        return {
+            "id": str(current_user.id),
+            "full_name": current_user.full_name,
+            "email": current_user.email,
+            "phone_number": current_user.phone_number,
+            "company_id": str(current_user.company_id),
+            "role": primary_role,
+            "roles": role_names,
+            "user_type": "company_user"
+        }
+    else:
+        # Regular user (customer)
+        return {
+            "id": str(current_user.id),
+            "full_name": current_user.full_name,
+            "email": current_user.email,
+            "phone_number": current_user.phone_number,
+            "user_type": "user"
+        }
 
 # Endpoint to delete User
 
-@router.delete("/users/{user_id}", dependencies=[Depends(get_current_user), Depends(check_permission("delete_user"))])
-def delete_user(user_id, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    payments = db.query(Payment).filter(Payment.user_id == user.id).all()
-    for payment in payments:
-        db.delete(payment)
-    db.delete(user)
+@router.delete("/users/{user_id}", dependencies=[Depends(get_current_company_user), Depends(check_permission("delete_user"))])
+async def delete_user(user_id, db: Session = Depends(get_db), current_user = Depends(get_current_company_user)):
+    """
+    Delete a company user.
+    Only company admins can do this, and only for company users in their company.
+    """
+    company_user = db.query(CompanyUser).filter(CompanyUser.id == user_id).first()
+    if not company_user:
+        raise HTTPException(status_code=404, detail="Company user not found")
+    
+    # Ensure company user belongs to the same company
+    if company_user.company_id != current_user.company_id:
+        raise HTTPException(status_code=403, detail="You can only delete company users in your company")
+    
+    db.delete(company_user)
     db.commit()
-    return {"message":f"User with id: {user_id}, deleted well"}
+    return {"message": f"Company user with id: {user_id}, deleted successfully"}
 
 # Endpoint to Edit User
 
-@router.patch("/users/{user_id}", response_model=UserOut, dependencies=[Depends(check_permission("update_user"))])
+@router.patch("/users/{user_id}", response_model=UserOut, dependencies=[Depends(get_current_company_user), Depends(check_permission("update_user"))])
 async def update_user(
     user_id: str,
     db: Session = Depends(get_db),
     user: UpdateUser = Body(...),
-    current_user = Depends(get_current_user)
+    current_user = Depends(get_current_company_user)
 ):
-    get_user = db.query(User).filter(User.id == str(user_id)).first()
-    if not get_user:
-        raise HTTPException(status_code=404, detail="User not found")
+    """
+    Update a company user.
+    Only company admins can do this, and only for company users in their company.
+    """
+    get_company_user = db.query(CompanyUser).filter(CompanyUser.id == str(user_id)).first()
+    if not get_company_user:
+        raise HTTPException(status_code=404, detail="Company user not found")
+    
+    # Ensure company user belongs to the same company
+    if get_company_user.company_id != current_user.company_id:
+        raise HTTPException(status_code=403, detail="You can only update company users in your company")
 
     # Update normal fields
     updated_data = user.model_dump(exclude_unset=True)
     for key, value in updated_data.items():
         if key != "role":
-            setattr(get_user, key, value)
+            setattr(get_company_user, key, value)
 
-    # Update role if provided
+    # Update role if provided - must be from the same company
     if user.role:
-        role_obj = db.query(Role).filter(Role.name == user.role).first()
+        role_obj = db.query(Role).filter(
+            Role.name == user.role,
+            Role.company_id == current_user.company_id
+        ).first()
         if not role_obj:
-            raise HTTPException(status_code=404, detail="Role not found")
-        get_user.roles = [role_obj]  # replace old roles with the new one
+            raise HTTPException(status_code=404, detail="Role not found in your company")
+        get_company_user.roles = [role_obj]  # replace old roles with the new one
 
     db.commit()
-    db.refresh(get_user)
+    db.refresh(get_company_user)
 
     # Prepare response with role name
-    role_name = get_user.roles[0].name if get_user.roles else None
+    role_name = get_company_user.roles[0].name if get_company_user.roles else None
     return UserOut(
-        id=get_user.id,
-        full_name=get_user.full_name,
-        email=get_user.email,
-        phone_number=get_user.phone_number,
+        id=get_company_user.id,
+        full_name=get_company_user.full_name,
+        email=get_company_user.email,
+        phone_number=get_company_user.phone_number,
         role=role_name
     )
    
 
-# Endpoint to get all user
-@router.get("/users", response_model=List[UserOut], dependencies=[Depends(check_permission("view_users"))])
-def get_all_users(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    users = db.query(User).all()
+# Endpoint to get all company users (company-scoped)
+@router.get("/users", response_model=List[UserOut], dependencies=[Depends(get_current_company_user), Depends(check_permission("view_users"))])
+async def get_all_users(db: Session = Depends(get_db), current_user = Depends(get_current_company_user)):
+    """
+    Get all company users in the current user's company.
+    Super admins cannot access this - they can only manage companies.
+    """
+    company_users = db.query(CompanyUser).filter(CompanyUser.company_id == current_user.company_id).all()
     
     result = []
-    for u in users:
+    for cu in company_users:
         # Take the first role name if available
-        role_name = u.roles[0].name if u.roles else None
+        role_name = cu.roles[0].name if cu.roles else None
         result.append(UserOut(
-            id=u.id,
-            full_name=u.full_name,
-            email=u.email,
-            phone_number=u.phone_number,
+            id=cu.id,
+            full_name=cu.full_name,
+            email=cu.email,
+            phone_number=cu.phone_number,
             role=role_name
         ))
     

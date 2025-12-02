@@ -16,27 +16,27 @@ role_permissions = Table(
     Column("permission_id", String, ForeignKey("permissions.id"), primary_key=True),
 )
 
-# users <-> roles (many-to-many)
-user_roles = Table(
-    "user_roles",
+# company_users <-> roles (many-to-many)
+company_user_roles = Table(
+    "company_user_roles",
     Base.metadata,
-    Column("user_id", String, ForeignKey("users.id"), primary_key=True),
+    Column("company_user_id", String, ForeignKey("company_users.id"), primary_key=True),
     Column("role_id", String, ForeignKey("roles.id"), primary_key=True),
 )
 
-# users <-> extra permissions (many-to-many, per‑user grants)
-user_extra_permissions = Table(
-    "user_extra_permissions",
+# company_users <-> extra permissions (many-to-many, per‑user grants)
+company_user_extra_permissions = Table(
+    "company_user_extra_permissions",
     Base.metadata,
-    Column("user_id", String, ForeignKey("users.id"), primary_key=True),
+    Column("company_user_id", String, ForeignKey("company_users.id"), primary_key=True),
     Column("permission_id", String, ForeignKey("permissions.id"), primary_key=True),
 )
 
-# users <-> revoked permissions (many-to-many, per‑user explicit denies)
-user_revoked_permissions = Table(
-    "user_revoked_permissions",
+# company_users <-> revoked permissions (many-to-many, per‑user explicit denies)
+company_user_revoked_permissions = Table(
+    "company_user_revoked_permissions",
     Base.metadata,
-    Column("user_id", String, ForeignKey("users.id"), primary_key=True),
+    Column("company_user_id", String, ForeignKey("company_users.id"), primary_key=True),
     Column("permission_id", String, ForeignKey("permissions.id"), primary_key=True),
 )
 
@@ -58,7 +58,29 @@ bus_schedules = Table(
 
 
 class User(Base):
+    """
+    Regular users who book tickets via the website.
+    These users are NOT tied to any company.
+    """
     __tablename__ = "users"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    full_name = Column(String, nullable=False)
+    email = Column(String, unique=True, nullable=True)
+    phone_number = Column(String, nullable=True)
+    password_hash = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.now(UTC))
+
+    # Regular users don't have company_id - they're customers
+    tickets = relationship("Ticket", back_populates="user")
+    payments = relationship("Payment", back_populates="user")
+
+
+class CompanyUser(Base):
+    """
+    Company staff who manage the company via .NET software.
+    These users are tied to a company and have roles/permissions.
+    """
+    __tablename__ = "company_users"
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     full_name = Column(String, nullable=False)
     # Real/personal email for the user (used for OTP delivery, notifications, etc.)
@@ -69,24 +91,21 @@ class User(Base):
     password_hash = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.now(UTC))
 
-    company_id = Column(String, ForeignKey("companies.id"), nullable=True)
-    company = relationship("Company", back_populates="staff")
+    company_id = Column(String, ForeignKey("companies.id"), nullable=False)
+    company = relationship("Company", back_populates="company_users")
 
-    roles = relationship("Role", secondary=user_roles, back_populates="users")
+    roles = relationship("Role", secondary=company_user_roles, back_populates="company_users")
     # Per-user permission overrides
     extra_permissions = relationship(
         "Permission",
-        secondary=user_extra_permissions,
-        back_populates="users_with_extra_permissions",
+        secondary=company_user_extra_permissions,
+        back_populates="company_users_with_extra_permissions",
     )
     revoked_permissions = relationship(
         "Permission",
-        secondary=user_revoked_permissions,
-        back_populates="users_with_revoked_permissions",
+        secondary=company_user_revoked_permissions,
+        back_populates="company_users_with_revoked_permissions",
     )
-    tickets = relationship("Ticket", back_populates="user")
-    payments = relationship("Payment", back_populates="user")
-    # company_roles = relationship("CompanyRole", back_populates="users")
 
 
 class Role(Base):
@@ -98,7 +117,7 @@ class Role(Base):
     # If null, the role is global (e.g. "super_admin"); otherwise it belongs to a company.
     company_id = Column(String, ForeignKey("companies.id"), nullable=True)
 
-    users = relationship("User", secondary=user_roles, back_populates="roles")
+    company_users = relationship("CompanyUser", secondary=company_user_roles, back_populates="roles")
     permissions = relationship("Permission", secondary=role_permissions, back_populates="roles")
     company = relationship("Company", back_populates="roles")
 
@@ -106,20 +125,24 @@ class Role(Base):
 class Permission(Base):
     __tablename__ = "permissions"
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    name = Column(String, unique=True, nullable=False)
+    # Permission name - unique per company (or global if company_id is None)
+    name = Column(String, nullable=False)
+    # If null, the permission is global (e.g. system-level); otherwise it belongs to a company.
+    company_id = Column(String, ForeignKey("companies.id"), nullable=True)
 
     roles = relationship("Role", secondary=role_permissions, back_populates="permissions")
-    # Backrefs for per-user overrides
-    users_with_extra_permissions = relationship(
-        "User",
-        secondary=user_extra_permissions,
+    # Backrefs for per-company-user overrides
+    company_users_with_extra_permissions = relationship(
+        "CompanyUser",
+        secondary=company_user_extra_permissions,
         back_populates="extra_permissions",
     )
-    users_with_revoked_permissions = relationship(
-        "User",
-        secondary=user_revoked_permissions,
+    company_users_with_revoked_permissions = relationship(
+        "CompanyUser",
+        secondary=company_user_revoked_permissions,
         back_populates="revoked_permissions",
     )
+    company = relationship("Company", back_populates="permissions")
 
 
 class PaymentStatus(str, enum.Enum):
@@ -130,17 +153,17 @@ class PaymentStatus(str, enum.Enum):
 
 class LoginOTP(Base):
     """
-    Stores one-time passwords for company login via company-issued login_email.
-    OTP is sent to the user's real email and must be verified before issuing JWT.
+    Stores one-time passwords for company user login via company-issued login_email.
+    OTP is sent to the company user's real email and must be verified before issuing JWT.
     """
     __tablename__ = "login_otps"
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    company_user_id = Column(String, ForeignKey("company_users.id"), nullable=False)
     code = Column(String, nullable=False)
     expires_at = Column(DateTime, nullable=False)
     consumed = Column(Boolean, default=False)
 
-    user = relationship("User")
+    company_user = relationship("CompanyUser")
 
 class Payment(Base):
     __tablename__ = "payments"
@@ -168,7 +191,7 @@ class Company(Base):
     created_at = Column(DateTime, default=datetime.now(UTC))
 
 
-    staff = relationship("User", back_populates="company")
+    company_users = relationship("CompanyUser", back_populates="company")
     buses = relationship("Bus", back_populates="company")
     routes = relationship("Route", back_populates="company")
     route_segments = relationship("RouteSegment", back_populates="company")
@@ -177,6 +200,8 @@ class Company(Base):
     tickets = relationship("Ticket", back_populates="company")
     # Company-scoped roles (e.g. cashier, inspector, etc.)
     roles = relationship("Role", back_populates="company")
+    # Company-scoped permissions
+    permissions = relationship("Permission", back_populates="company")
 
 
 # Bus model

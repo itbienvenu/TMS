@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from database.models import Role, Permission, User
-from methods.functions import get_current_user
+from database.models import Role, Permission, CompanyUser
+from methods.functions import get_current_company_user
 from database.dbs import get_db
 from sqlalchemy.orm import aliased, joinedload
-from methods.permissions import check_permission
+from methods.permissions import check_permission, get_current_company_user
 from sqlalchemy.orm import Session
 from schemas.AuthScheme import RoleCreate, PermissionCreate, RolePermissionAssign, PermissionOut, MyPermissionsOut, RoleOut
 from typing import List
@@ -11,38 +11,30 @@ from typing import List
 router = APIRouter(prefix="/api/v1/roles", tags=['Roles control endpoints'])
 
 # Endpoint to create roles
-@router.post("/create_role", dependencies=[Depends(check_permission("create_role"))])
-def create_role(
+@router.post("/create_role", dependencies=[Depends(get_current_company_user), Depends(check_permission("create_role"))])
+async def create_role(
     role_data: RoleCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: CompanyUser = Depends(get_current_company_user),
 ):
     """
-    Create a new role.
-
-    - If the caller is a super admin, the role is global (company_id = None).
-    - Otherwise, the role is scoped to the caller's company (company_id = current_user.company_id).
+    Create a new role scoped to the current user's company.
+    Super admins cannot create roles - they can only manage companies.
     """
-    # Determine scope: global vs company-scoped
-    is_super_admin = any(r.name == "super_admin" for r in (current_user.roles or []))
-    company_id = None if is_super_admin else current_user.company_id
-
-    # Check if role with same name already exists in the same scope
-    query = db.query(Role).filter(Role.name == role_data.name)
-    if company_id is None:
-        query = query.filter(Role.company_id.is_(None))
-    else:
-        query = query.filter(Role.company_id == company_id)
-
-    existing = query.first()
+    # Check if role with same name already exists in this company
+    existing = db.query(Role).filter(
+        Role.name == role_data.name,
+        Role.company_id == current_user.company_id
+    ).first()
+    
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Role with this name already exists"
+            detail="Role with this name already exists in your company"
         )
     
-    # Create Role with the resolved scope
-    new_role = Role(name=role_data.name, company_id=company_id)
+    # Create Role scoped to the company
+    new_role = Role(name=role_data.name, company_id=current_user.company_id)
 
     db.add(new_role)
     db.commit()
@@ -52,24 +44,34 @@ def create_role(
 
 # Getting all roles
 
-@router.get("/all_roles", response_model=List[RoleOut], dependencies=[Depends(check_permission("list_all_roles"))])
-def get_all_roles(db: Session = Depends(get_db)):
-    return db.query(Role).all()
+@router.get("/all_roles", response_model=List[RoleOut], dependencies=[Depends(get_current_company_user), Depends(check_permission("list_all_roles"))])
+async def get_all_roles(db: Session = Depends(get_db), current_user: CompanyUser = Depends(get_current_company_user)):
+    """
+    Get all roles for the current user's company.
+    Super admins cannot access this - they can only manage companies.
+    """
+    return db.query(Role).filter(Role.company_id == current_user.company_id).all()
 
 
 # Deleting the role
-@router.delete("/delete_role/{role_id}", dependencies=[Depends(check_permission("delete_role"))])
-def delete_role(
+@router.delete("/delete_role/{role_id}", dependencies=[Depends(get_current_company_user), Depends(check_permission("delete_role"))])
+async def delete_role(
     role_id: str,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user: CompanyUser = Depends(get_current_company_user)
 ):
-    # Find the role to delete
+    """
+    Delete a role.
+    Only company admins can do this, and only for roles in their company.
+    """
     role = db.query(Role).filter(Role.id == role_id).first()
     
-    # Check if the role exists
     if not role:
         raise HTTPException(status_code=404, detail="Role not found")
+    
+    # Ensure role belongs to the same company
+    if role.company_id != current_user.company_id:
+        raise HTTPException(status_code=403, detail="You can only delete roles from your company")
 
     # Delete the role
     db.delete(role)

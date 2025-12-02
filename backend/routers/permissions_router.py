@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from database.models import Role, Permission, User
-from methods.functions import get_current_user
+from database.models import Role, Permission, CompanyUser
+from methods.functions import get_current_company_user
 from database.dbs import get_db
 from sqlalchemy.orm import aliased, joinedload
-from methods.permissions import check_permission
+from methods.permissions import check_permission, get_current_company_user
 from sqlalchemy.orm import Session
 from schemas.AuthScheme import RoleCreate, PermissionCreate, RolePermissionAssign, PermissionOut, MyPermissionsOut, RoleOut
 from typing import List
@@ -11,24 +11,29 @@ from typing import List
 router = APIRouter(prefix="/api/v1/perm", tags=['Permission control endpoints'])
 
 @router.get("/validate-token")
-async def validate_token(current_user = Depends(get_current_user)):
+async def validate_token(current_user = Depends(get_current_company_user)):
     return {"status": "valid", "user_id": current_user.id}
 
 
-@router.post("/create_permission", dependencies=[Depends(check_permission("create_permission"))])
-def create_permission(permission_data: PermissionCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    # Check if permission with the same name exists
-    """Admins are only to  access this role"""
-
-    existing = db.query(Permission).filter(Permission.name == permission_data.name).first()
+@router.post("/create_permission", dependencies=[Depends(get_current_company_user), Depends(check_permission("create_permission"))])
+async def create_permission(permission_data: PermissionCreate, db: Session = Depends(get_db), current_user: CompanyUser = Depends(get_current_company_user)):
+    """
+    Create a new permission scoped to the current user's company.
+    Super admins cannot create permissions - they can only manage companies.
+    """
+    # Check if permission with the same name exists in this company
+    existing = db.query(Permission).filter(
+        Permission.name == permission_data.name,
+        Permission.company_id == current_user.company_id
+    ).first()
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Permission with this name already exists"
+            detail="Permission with this name already exists in your company"
         )
     
-    # Create Permission
-    new_permission = Permission(name=permission_data.name)
+    # Create Permission scoped to the company
+    new_permission = Permission(name=permission_data.name, company_id=current_user.company_id)
     db.add(new_permission)
     db.commit()
     db.refresh(new_permission)
@@ -38,28 +43,43 @@ def create_permission(permission_data: PermissionCreate, db: Session = Depends(g
 
 
 
-@router.get("/get_permissions", response_model=List[PermissionOut], dependencies=[Depends(check_permission("get_permission"))])
-def get_permissions(db: Session = Depends(get_db), user = Depends(get_current_user)):
-    """Any one can access this enpoint to see his permission, but mostly for admins class"""
-    return db.query(Permission).all()
+@router.get("/get_permissions", response_model=List[PermissionOut], dependencies=[Depends(get_current_company_user), Depends(check_permission("get_permission"))])
+async def get_permissions(db: Session = Depends(get_db), user: CompanyUser = Depends(get_current_company_user)):
+    """
+    Get all permissions for the current user's company.
+    Super admins cannot access this - they can only manage companies.
+    """
+    return db.query(Permission).filter(Permission.company_id == user.company_id).all()
 
 # Role managment
 @router.get("/my_permissions", response_model=MyPermissionsOut)
-def my_permissions(
+async def my_permissions(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: CompanyUser = Depends(get_current_company_user)
 ):
     """
     Return the *effective* permission list for the current user:
-    - All permissions from their roles
+    - All permissions from their roles (company-scoped or global for super_admin)
     - Plus any per-user extra permissions
     - Minus any explicitly revoked permissions
     """
-    role_perms = {
-        perm.id: perm for role in (current_user.roles or []) for perm in (role.permissions or [])
-    }
-    extra_perms = {perm.id: perm for perm in (current_user.extra_permissions or [])}
-    revoked_ids = {perm.id for perm in (current_user.revoked_permissions or [])}
+    is_super_admin = any(r.name == "super_admin" for r in (current_user.roles or []))
+    
+    role_perms = {}
+    for role in (current_user.roles or []):
+        for perm in (role.permissions or []):
+            if perm.company_id == current_user.company_id or (perm.company_id is None and is_super_admin):
+                role_perms[perm.id] = perm
+    
+    extra_perms = {}
+    for perm in (current_user.extra_permissions or []):
+        if perm.company_id == current_user.company_id or (perm.company_id is None and is_super_admin):
+            extra_perms[perm.id] = perm
+    
+    revoked_ids = set()
+    for perm in (current_user.revoked_permissions or []):
+        if perm.company_id == current_user.company_id or (perm.company_id is None and is_super_admin):
+            revoked_ids.add(perm.id)
 
     # Start from union of role+extra, then remove revoked
     combined = {**role_perms, **extra_perms}
@@ -72,92 +92,122 @@ def my_permissions(
 
 @router.post(
     "/grant_user_permission",
-    dependencies=[Depends(check_permission("manage_user_permissions"))],
+    dependencies=[Depends(get_current_company_user), Depends(check_permission("manage_user_permissions"))],
 )
-def grant_user_permission(
+async def grant_user_permission(
     user_id: str,
     permission_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: CompanyUser = Depends(get_current_company_user),
 ):
     """
-    Grant an *extra* permission directly to a user (beyond what their roles provide).
-    Typically used by a company admin or super admin.
+    Grant an *extra* permission directly to a company user (beyond what their roles provide).
+    Only company admins can do this, and only for company users in their company.
+    Super admins cannot manage company users.
     """
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    company_user = db.query(CompanyUser).filter(CompanyUser.id == user_id).first()
+    if not company_user:
+        raise HTTPException(status_code=404, detail="Company user not found")
+    
+    # Ensure company user belongs to the same company
+    if company_user.company_id != current_user.company_id:
+        raise HTTPException(status_code=403, detail="You can only manage company users in your company")
 
     permission = db.query(Permission).filter(Permission.id == permission_id).first()
     if not permission:
         raise HTTPException(status_code=404, detail="Permission not found")
+    
+    # Ensure permission belongs to the same company
+    if permission.company_id != current_user.company_id:
+        raise HTTPException(status_code=403, detail="You can only grant permissions from your company")
 
-    if permission in user.extra_permissions:
-        return {"message": "Permission already granted to user"}
+    if permission in company_user.extra_permissions:
+        return {"message": "Permission already granted to company user"}
 
     # If this permission was explicitly revoked before, remove it from revoked set
-    if permission in user.revoked_permissions:
-        user.revoked_permissions.remove(permission)
+    if permission in company_user.revoked_permissions:
+        company_user.revoked_permissions.remove(permission)
 
-    user.extra_permissions.append(permission)
+    company_user.extra_permissions.append(permission)
     db.commit()
-    db.refresh(user)
+    db.refresh(company_user)
 
-    return {"message": "Permission granted to user"}
+    return {"message": "Permission granted to company user"}
 
 
 @router.post(
     "/revoke_user_permission",
-    dependencies=[Depends(check_permission("manage_user_permissions"))],
+    dependencies=[Depends(get_current_company_user), Depends(check_permission("manage_user_permissions"))],
 )
-def revoke_user_permission(
+async def revoke_user_permission(
     user_id: str,
     permission_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: CompanyUser = Depends(get_current_company_user),
 ):
     """
-    Explicitly revoke a permission from a user.
+    Explicitly revoke a permission from a company user.
     This overrides any grants coming from roles or extra permissions.
+    Only company admins can do this, and only for company users in their company.
     """
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    company_user = db.query(CompanyUser).filter(CompanyUser.id == user_id).first()
+    if not company_user:
+        raise HTTPException(status_code=404, detail="Company user not found")
+    
+    # Ensure company user belongs to the same company
+    if company_user.company_id != current_user.company_id:
+        raise HTTPException(status_code=403, detail="You can only manage company users in your company")
 
     permission = db.query(Permission).filter(Permission.id == permission_id).first()
     if not permission:
         raise HTTPException(status_code=404, detail="Permission not found")
+    
+    # Ensure permission belongs to the same company
+    if permission.company_id != current_user.company_id:
+        raise HTTPException(status_code=403, detail="You can only revoke permissions from your company")
 
     # Remove from extra_permissions if present
-    if permission in user.extra_permissions:
-        user.extra_permissions.remove(permission)
+    if permission in company_user.extra_permissions:
+        company_user.extra_permissions.remove(permission)
 
-    if permission not in user.revoked_permissions:
-        user.revoked_permissions.append(permission)
+    if permission not in company_user.revoked_permissions:
+        company_user.revoked_permissions.append(permission)
 
     db.commit()
-    db.refresh(user)
+    db.refresh(company_user)
 
-    return {"message": "Permission revoked from user"}
+    return {"message": "Permission revoked from company user"}
 
 
 
 # Assigning the 
-@router.post("/assign_permissions", dependencies=[Depends(check_permission("assign_permission"))])
-def assign_permissions_to_role(
+@router.post("/assign_permissions", dependencies=[Depends(get_current_company_user), Depends(check_permission("assign_permission"))])
+async def assign_permissions_to_role(
     data: RolePermissionAssign,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user: CompanyUser = Depends(get_current_company_user)
 ):
+    """
+    Assign a permission to a role.
+    Only company admins can do this, and only for roles/permissions in their company.
+    """
     # Eagerly load the permissions relationship to ensure they are in the session
     role = db.query(Role).filter(Role.id == data.role_id).options(joinedload(Role.permissions)).first()
     if not role:
         raise HTTPException(status_code=404, detail="Role not found")
     
+    # Ensure role belongs to the same company
+    if role.company_id != current_user.company_id:
+        raise HTTPException(status_code=403, detail="You can only manage roles in your company")
+    
     # Fetch the single permission to assign
     permission_to_add = db.query(Permission).filter(Permission.id == data.permission_id).first()
     if not permission_to_add:
         raise HTTPException(status_code=404, detail="Permission not found with the provided ID")
+    
+    # Ensure permission belongs to the same company
+    if permission_to_add.company_id != current_user.company_id:
+        raise HTTPException(status_code=403, detail="You can only assign permissions from your company")
 
     # Check if the permission is already assigned to the role
     existing_permission_ids = {p.id for p in role.permissions}
@@ -190,22 +240,28 @@ def assign_permissions_to_role(
 
 
 # Deleting the Permission
-@router.delete("/delete_permission/{permission_id}", dependencies=[Depends(check_permission("delete_permission"))])
-def delete_role(
+@router.delete("/delete_permission/{permission_id}", dependencies=[Depends(get_current_company_user), Depends(check_permission("delete_permission"))])
+async def delete_permission(
     permission_id: str,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user: CompanyUser = Depends(get_current_company_user)
 ):
-    # Find the role to delete
+    """
+    Delete a permission.
+    Only company admins can do this, and only for permissions in their company.
+    """
     permission = db.query(Permission).filter(Permission.id == permission_id).first()
     
-    # Check if the role exists
     if not permission:
         raise HTTPException(status_code=404, detail="Permission not found")
+    
+    # Ensure permission belongs to the same company
+    if permission.company_id != current_user.company_id:
+        raise HTTPException(status_code=403, detail="You can only delete permissions from your company")
 
-    # Delete the Permissionrole
+    # Delete the Permission
     db.delete(permission)
     db.commit()
 
-    return {"message": f"Role '{permission.name}' with ID '{permission_id}' deleted successfully"}
+    return {"message": f"Permission '{permission.name}' with ID '{permission_id}' deleted successfully"}
 

@@ -3,7 +3,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from passlib.hash import bcrypt
 from database.dbs import Base, engine, get_db
-from database.models import User, Route, Role, Permission, LoginOTP, user_roles
+from database.models import User, CompanyUser, Route, Role, Permission, LoginOTP
 from schemas.LoginRegisteScheme import RegisterUser, LoginUser, UserOut
 from schemas.RoutesScheme import RegisterRoute, UpdateRoute, RouteOut
 from jose import jwt, JWTError
@@ -27,23 +27,38 @@ GMAIL_SMTP_PASSWORD = os.environ.get("GMAIL_SMTP_PASSWORD")
 bearer_scheme = HTTPBearer()
 
 
-def has_permission(user: User, permission_name: str) -> bool:
+def has_permission(company_user: CompanyUser, permission_name: str) -> bool:
     """
-    Compute the effective permissions for a user, taking into account:
-    - Permissions granted via roles
-    - Extra per-user permissions
+    Compute the effective permissions for a company user, taking into account:
+    - Permissions granted via roles (company-scoped or global)
+    - Extra per-user permissions (company-scoped or global)
     - Explicitly revoked per-user permissions (which override grants)
+    
+    Permissions are filtered to only include:
+    - Permissions that belong to the user's company (company_id matches)
+    - Global permissions (company_id is None) - only for super_admin
     """
-    # Base permissions from roles
-    role_permissions = {
-        perm.name
-        for role in (user.roles or [])
-        for perm in (role.permissions or [])
-    }
+    # Check if user is super_admin (can access global permissions)
+    is_super_admin = any(r.name == "super_admin" for r in (company_user.roles or []))
+    
+    # Base permissions from roles - filter by company scope
+    role_permissions = set()
+    for role in (company_user.roles or []):
+        for perm in (role.permissions or []):
+            # Include if: permission belongs to user's company, OR it's global and user is super_admin
+            if perm.company_id == company_user.company_id or (perm.company_id is None and is_super_admin):
+                role_permissions.add(perm.name)
 
-    # Per-user overrides
-    extra_permissions = {perm.name for perm in (user.extra_permissions or [])}
-    revoked_permissions = {perm.name for perm in (user.revoked_permissions or [])}
+    # Per-user overrides - filter by company scope
+    extra_permissions = set()
+    for perm in (company_user.extra_permissions or []):
+        if perm.company_id == company_user.company_id or (perm.company_id is None and is_super_admin):
+            extra_permissions.add(perm.name)
+    
+    revoked_permissions = set()
+    for perm in (company_user.revoked_permissions or []):
+        if perm.company_id == company_user.company_id or (perm.company_id is None and is_super_admin):
+            revoked_permissions.add(perm.name)
 
     effective_permissions = (role_permissions | extra_permissions) - revoked_permissions
     return permission_name in effective_permissions
@@ -84,7 +99,11 @@ def send_email(to_email: str, subject: str, body: str):
         smtp.login(GMAIL_SMTP_USER, GMAIL_SMTP_PASSWORD)
         smtp.send_message(msg)
 
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme), db: Session =  Depends(get_db)):
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme), db: Session = Depends(get_db)):
+    """
+    Get current user - can be either a regular User (customer) or CompanyUser (company staff).
+    Token should have 'user_type' field to distinguish.
+    """
     token = credentials.credentials
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -94,15 +113,54 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer_
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("sub")
-        company_id: str = payload.get("company_id")
+        user_type: str = payload.get("user_type", "user")  # Default to "user" for backward compatibility
         if user_id is None:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
+    
+    # Check if it's a company user or regular user
+    if user_type == "company_user":
+        company_user = db.query(CompanyUser).filter(CompanyUser.id == user_id).first()
+        if not company_user:
+            raise credentials_exception
+        return company_user
+    else:
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            raise credentials_exception
+        return user
+
+
+def get_current_company_user(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme), db: Session = Depends(get_db)):
+    """
+    Get current company user - only returns CompanyUser, not regular User.
+    """
+    token = credentials.credentials
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail=f"Could not validate Credentials",
+        headers={"WWW-Authenticate": "Bearer"}
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: str = payload.get("sub")
+        user_type: str = payload.get("user_type", "user")
+        if user_id is None:
+            raise credentials_exception
+    except JWTError:
         raise credentials_exception
-    return user
+    
+    if user_type != "company_user":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This endpoint requires company user authentication"
+        )
+    
+    company_user = db.query(CompanyUser).filter(CompanyUser.id == user_id).first()
+    if not company_user:
+        raise credentials_exception
+    return company_user
 
 
 
@@ -143,13 +201,9 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def login_user(db: Session, user: LoginUser):
     """
-    Legacy login:
+    Login for regular users (customers) who book tickets via website.
     - If `email` is provided, authenticate by real email.
     - If `phone_number` is provided, authenticate by phone.
-
-    Note: For company users using a company-issued login email, prefer a dedicated
-    company-login flow that authenticates via `User.login_email` and performs
-    OTP verification to the real `email`.
     """
     check_user = None
 
@@ -166,15 +220,15 @@ def login_user(db: Session, user: LoginUser):
     
     token = create_access_token(
         data={
-            "sub":str(check_user.id),
-            "company_id": str(check_user.company_id)
-            }, 
+            "sub": str(check_user.id),
+            "user_type": "user"  # Regular user
+        }, 
         expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     return {
-        "message":"Login Successful",
-        "access_token":token,
+        "message": "Login Successful",
+        "access_token": token,
         "token_type": "bearer"
-            }
+    }
 
 def register_route(db: Session, route: RegisterRoute):
     check_route = (db.query(Route)
