@@ -29,3 +29,29 @@ class UserCreate(BaseModel):
 class PasswordChange(BaseModel):
     old_password: str
     new_password: str
+
+class CompanyRoleCreate(BaseModel):
+    name: str
+    company_id: Optional[str] = None
+
+class CompanyRoleUpdate(BaseModel):
+    name: Optional[str] = None
+    company_id: Optional[str] = None
+
+class CompanyRoleResponse(BaseModel):
+    id: str
+    name: str
+    company_id: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+class CompanyUserResponse(BaseModel):
+    id: str
+    full_name: str
+    email: str
+    phone_number: str
+    company_id: Optional[str] = None
+
+    class Config:
+        from_attributes = True

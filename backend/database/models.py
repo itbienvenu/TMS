@@ -55,6 +55,7 @@ class User(Base):
     roles = relationship("Role", secondary=user_roles, back_populates="users")
     tickets = relationship("Ticket", back_populates="user")
     payments = relationship("Payment", back_populates="user")
+    # company_roles = relationship("CompanyRole", back_populates="users")
 
 
 class Role(Base):
@@ -112,6 +113,8 @@ class Company(Base):
     stations = relationship("BusStation", back_populates="company")
     schedules = relationship("Schedule", back_populates="company")
     tickets = relationship("Ticket", back_populates="company")
+    # roles = relationship("CompanyRole", back_populates="company")
+
 
 # Bus model
 class Bus(Base):
@@ -143,9 +146,7 @@ class BusStation(Base):
     route_segments_from = relationship("RouteSegment", back_populates="start_station", foreign_keys="RouteSegment.start_station_id")
     route_segments_to = relationship("RouteSegment", back_populates="end_station", foreign_keys="RouteSegment.end_station_id")
 
-# -----------------------------
-# Route (overall route)
-# -----------------------------
+
 class Route(Base):
     __tablename__ = "routes"
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
@@ -161,9 +162,7 @@ class Route(Base):
     buses = relationship("Bus", secondary=bus_routes, back_populates="routes")
     tickets = relationship("Ticket", back_populates='route')
 
-# -----------------------------
-# RouteSegment (segment between two stations)
-# -----------------------------
+
 class RouteSegment(Base):
     __tablename__ = "route_segments"
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
@@ -180,9 +179,7 @@ class RouteSegment(Base):
     schedules = relationship("Schedule", back_populates="route_segment")
     company = relationship("Company", back_populates="route_segments")
 
-# -----------------------------
-# Schedule
-# -----------------------------
+
 class Schedule(Base):
     __tablename__ = "schedules"
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
@@ -198,9 +195,7 @@ class Schedule(Base):
     tickets = relationship("Ticket", back_populates="schedule")
     buses = relationship("Bus", secondary=bus_schedules, back_populates="schedules")
 
-# -----------------------------
-# Ticket
-# -----------------------------
+
 class Ticket(Base):
     __tablename__ = "tickets"
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
@@ -220,3 +215,14 @@ class Ticket(Base):
     company = relationship("Company", back_populates="tickets")
     payments = relationship("Payment", back_populates="ticket")
     route = relationship("Route", back_populates='tickets')
+
+
+# class CompanyRole(Base):
+#     __tablename__ = "company_roles"
+#     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+#     name = Column(String, unique=True, nullable=False)
+#     company_id = Column(String, ForeignKey("companies.id"))
+
+#     company = relationship("Company", back_populates="roles")
+#     users = relationship("User", secondary=user_roles, back_populates="company_roles")
+

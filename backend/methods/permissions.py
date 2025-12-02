@@ -28,7 +28,7 @@ def get_current_company_user(current_user: User = Depends(get_current_user)):
     """
     Dependency that checks if the current user is associated with a company.
     """
-    if not current_user.company_id:
+    if not any(role.name in ["company_admin", "company_user"] for role in current_user.roles):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You are not authorized to manage company resources."

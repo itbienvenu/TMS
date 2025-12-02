@@ -6,11 +6,11 @@ import uuid
 
 from  database.dbs import get_db
 from database.models import Company, User, Role, Permission
-from schemas.CompanyScheme import CompanyCreate, CompanyResponse, UserCreate, PasswordChange
+from schemas.CompanyScheme import CompanyCreate, CompanyResponse , CompanyUserResponse, UserCreate, PasswordChange, CompanyRoleCreate, CompanyRoleResponse
 # from app.dependencies.dependencies import get_current_super_admin_user
 # from app.utils.auth_utils import get_password_hash
 from methods.functions import get_current_user
-from methods.permissions import get_current_super_admin_user
+from methods.permissions import get_current_super_admin_user, get_current_company_user
 from passlib.hash import bcrypt
 
 
@@ -115,7 +115,9 @@ async def get_company_by_id(company_id: str, db: Session = Depends(get_db)):
 
 @router.delete("/{company_id}", dependencies=[Depends(get_current_super_admin_user)])
 async def delete_company(company_id: str, db: Session = Depends(get_db)):
+
     """This action is sudo, means super users can only do this"""
+
     company =  db.query(Company).filter(Company.id == company_id).first()
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
@@ -125,7 +127,19 @@ async def delete_company(company_id: str, db: Session = Depends(get_db)):
     return {"message":"Company deleted well"}
 
 
-@router.post('/company-user', dependencies=[Depends(get_current_super_admin_user)])
+# get company members
+@router.get("/{company_id}/users", response_model=List[CompanyUserResponse], dependencies=[Depends(get_current_company_user)])
+async def get_company_users(company_id: str, db: Session = Depends(get_db)):
+    """
+    Returns a list of users belonging to a specific company.
+    This endpoint is for company admins.
+    """
+    users = db.query(User).filter(User.company_id == company_id).all()
+    return users
+
+
+
+@router.post('/company-user', dependencies=[Depends(get_current_company_user)])
 async def create_company_user(
     user_data: UserCreate,
     db: Session = Depends(get_db)
@@ -172,3 +186,44 @@ async def create_company_user(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"An error occurred: {e}")
+    
+# Endpoints for Company Roles Management
+
+# @router.post(
+#     "/company-roles",
+#     response_model=CompanyRoleResponse,
+#     status_code=status.HTTP_201_CREATED,
+#     dependencies=[Depends(get_current_company_user)]
+# )
+# async def create_company_role(
+#     company_role_data: CompanyRoleCreate,
+#     db: Session = Depends(get_db)
+# ):
+#     """
+#     Creates a new role specific to a company.
+#     This endpoint is for the main system admin.
+#     """
+#     # Check if the role name already exists within the company
+#     existing_role = db.query(CompanyRole).filter(
+#         CompanyRole.name == company_role_data.name,
+#         CompanyRole.company_id == company_role_data.company_id
+#     ).first()
+#     if existing_role:
+#         raise HTTPException(status_code=400, detail="Role name already exists for this company.")
+
+#     try:
+#         # Create the new company role
+#         new_company_role = CompanyRole(
+#             id=str(uuid.uuid4()),
+#             name=company_role_data.name,
+#             company_id=company_role_data.company_id
+#         )
+#         db.add(new_company_role)
+#         db.commit()
+#         db.refresh(new_company_role)
+        
+#         return new_company_role
+
+#     except Exception as e:
+#         db.rollback()
+#         raise HTTPException(status_code=500, detail=f"An error occurred: {e}")

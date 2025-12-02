@@ -1,21 +1,26 @@
-import axiosClient from "./axiosClient";
+import api from '../utils/axios';
+import type { TicketCreate } from '../types';
 
-export const createTicket = async (payload: any) => {
-  const { data } = await axiosClient.post("/tickets", payload);
-  return data;
-};
-
-export const getTickets = async () => {
-  const { data } = await axiosClient.get("/tickets");
-  return data;
-};
-
-export const updateTicket = async (id: string, payload: any) => {
-  const { data } = await axiosClient.patch(`/tickets/${id}`, payload);
-  return data;
-};
-
-export const deleteTicket = async (id: string) => {
-  const { data } = await axiosClient.delete(`/tickets/${id}`);
-  return data;
+export default {
+    getAll() {
+        return api.get('/tickets/');
+    },
+    getMyTickets() {
+        return api.get('/tickets/my-tickets/');
+    },
+    get(id: string) {
+        return api.get(`/tickets/${id}`);
+    },
+    create(data: TicketCreate) {
+        return api.post('/tickets/', data);
+    },
+    cancel(id: string) {
+        return api.put(`/tickets/${id}`);
+    },
+    updateStatus(id: string, status: string) {
+        return api.patch(`/tickets/${id}/status`, null, { params: { new_status: status } });
+    },
+    adminDelete(id: string) {
+        return api.delete(`/tickets/admin_delete/${id}`);
+    }
 };
