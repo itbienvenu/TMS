@@ -4,6 +4,7 @@ from database.dbs import Base
 import uuid
 from datetime import datetime, UTC
 import enum
+from datetime import timedelta
 
 
 
@@ -21,6 +22,22 @@ user_roles = Table(
     Base.metadata,
     Column("user_id", String, ForeignKey("users.id"), primary_key=True),
     Column("role_id", String, ForeignKey("roles.id"), primary_key=True),
+)
+
+# users <-> extra permissions (many-to-many, per‑user grants)
+user_extra_permissions = Table(
+    "user_extra_permissions",
+    Base.metadata,
+    Column("user_id", String, ForeignKey("users.id"), primary_key=True),
+    Column("permission_id", String, ForeignKey("permissions.id"), primary_key=True),
+)
+
+# users <-> revoked permissions (many-to-many, per‑user explicit denies)
+user_revoked_permissions = Table(
+    "user_revoked_permissions",
+    Base.metadata,
+    Column("user_id", String, ForeignKey("users.id"), primary_key=True),
+    Column("permission_id", String, ForeignKey("permissions.id"), primary_key=True),
 )
 
 # buses <-> routes (many-to-many)
@@ -44,7 +61,10 @@ class User(Base):
     __tablename__ = "users"
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     full_name = Column(String, nullable=False)
+    # Real/personal email for the user (used for OTP delivery, notifications, etc.)
     email = Column(String, unique=True, nullable=True)
+    # Company-issued login identifier/email – used when logging in as a company user
+    login_email = Column(String, unique=True, nullable=True)
     phone_number = Column(String, nullable=True)
     password_hash = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.now(UTC))
@@ -53,6 +73,17 @@ class User(Base):
     company = relationship("Company", back_populates="staff")
 
     roles = relationship("Role", secondary=user_roles, back_populates="users")
+    # Per-user permission overrides
+    extra_permissions = relationship(
+        "Permission",
+        secondary=user_extra_permissions,
+        back_populates="users_with_extra_permissions",
+    )
+    revoked_permissions = relationship(
+        "Permission",
+        secondary=user_revoked_permissions,
+        back_populates="users_with_revoked_permissions",
+    )
     tickets = relationship("Ticket", back_populates="user")
     payments = relationship("Payment", back_populates="user")
     # company_roles = relationship("CompanyRole", back_populates="users")
@@ -61,10 +92,15 @@ class User(Base):
 class Role(Base):
     __tablename__ = "roles"
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    name = Column(String, unique=True, nullable=False)
+    # Name of the role (e.g. "company_admin", "ticket_agent")
+    # Note: uniqueness is now logical (per company), not enforced globally at DB level.
+    name = Column(String, nullable=False)
+    # If null, the role is global (e.g. "super_admin"); otherwise it belongs to a company.
+    company_id = Column(String, ForeignKey("companies.id"), nullable=True)
 
     users = relationship("User", secondary=user_roles, back_populates="roles")
     permissions = relationship("Permission", secondary=role_permissions, back_populates="roles")
+    company = relationship("Company", back_populates="roles")
 
 
 class Permission(Base):
@@ -73,12 +109,38 @@ class Permission(Base):
     name = Column(String, unique=True, nullable=False)
 
     roles = relationship("Role", secondary=role_permissions, back_populates="permissions")
+    # Backrefs for per-user overrides
+    users_with_extra_permissions = relationship(
+        "User",
+        secondary=user_extra_permissions,
+        back_populates="extra_permissions",
+    )
+    users_with_revoked_permissions = relationship(
+        "User",
+        secondary=user_revoked_permissions,
+        back_populates="revoked_permissions",
+    )
 
 
 class PaymentStatus(str, enum.Enum):
     pending = "pending"
     success = "success"
     failed = "failed"
+
+
+class LoginOTP(Base):
+    """
+    Stores one-time passwords for company login via company-issued login_email.
+    OTP is sent to the user's real email and must be verified before issuing JWT.
+    """
+    __tablename__ = "login_otps"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    code = Column(String, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    consumed = Column(Boolean, default=False)
+
+    user = relationship("User")
 
 class Payment(Base):
     __tablename__ = "payments"
@@ -113,7 +175,8 @@ class Company(Base):
     stations = relationship("BusStation", back_populates="company")
     schedules = relationship("Schedule", back_populates="company")
     tickets = relationship("Ticket", back_populates="company")
-    # roles = relationship("CompanyRole", back_populates="company")
+    # Company-scoped roles (e.g. cashier, inspector, etc.)
+    roles = relationship("Role", back_populates="company")
 
 
 # Bus model

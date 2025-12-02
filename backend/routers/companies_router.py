@@ -164,6 +164,7 @@ async def create_company_user(
             id=str(uuid.uuid4()),
             full_name=user_data.full_name,
             email=user_data.email,
+            login_email=user_data.login_email or user_data.email,
             phone_number=user_data.phone_number,
             password_hash=hashed_password,
             created_at=datetime.now(UTC),

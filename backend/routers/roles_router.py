@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from database.models import Role, Permission,User
+from database.models import Role, Permission, User
 from methods.functions import get_current_user
 from database.dbs import get_db
 from sqlalchemy.orm import aliased, joinedload
@@ -12,19 +12,37 @@ router = APIRouter(prefix="/api/v1/roles", tags=['Roles control endpoints'])
 
 # Endpoint to create roles
 @router.post("/create_role", dependencies=[Depends(check_permission("create_role"))])
-def create_role(role_data: RoleCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
-    # Check if role with same name exists
-    """Admins are only to  access this role"""
+def create_role(
+    role_data: RoleCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Create a new role.
 
-    existing = db.query(Role).filter(Role.name == role_data.name).first()
+    - If the caller is a super admin, the role is global (company_id = None).
+    - Otherwise, the role is scoped to the caller's company (company_id = current_user.company_id).
+    """
+    # Determine scope: global vs company-scoped
+    is_super_admin = any(r.name == "super_admin" for r in (current_user.roles or []))
+    company_id = None if is_super_admin else current_user.company_id
+
+    # Check if role with same name already exists in the same scope
+    query = db.query(Role).filter(Role.name == role_data.name)
+    if company_id is None:
+        query = query.filter(Role.company_id.is_(None))
+    else:
+        query = query.filter(Role.company_id == company_id)
+
+    existing = query.first()
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Role with this name already exists"
         )
     
-    # Create Role
-    new_role = Role(name=role_data.name)
+    # Create Role with the resolved scope
+    new_role = Role(name=role_data.name, company_id=company_id)
 
     db.add(new_role)
     db.commit()

@@ -20,7 +20,10 @@ class CompanyResponse(CompanyBase):
 
 class UserCreate(BaseModel):
     full_name: str
+    # Real email of the user (used for OTP verification and communication)
     email: str
+    # Company-issued login identifier/email the user will use to sign in
+    login_email: Optional[str] = None
     phone_number: str
     password: str
     role_name: str

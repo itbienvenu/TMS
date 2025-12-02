@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from database.models import Role, Permission,User
+from database.models import Role, Permission, User
 from methods.functions import get_current_user
 from database.dbs import get_db
 from sqlalchemy.orm import aliased, joinedload
@@ -49,18 +49,96 @@ def my_permissions(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    permissions = (
-        db.query(Permission)
-        .filter(Permission.roles.any(Role.users.any(User.id == current_user.id)))
-        .all()
-    )
+    """
+    Return the *effective* permission list for the current user:
+    - All permissions from their roles
+    - Plus any per-user extra permissions
+    - Minus any explicitly revoked permissions
+    """
+    role_perms = {
+        perm.id: perm for role in (current_user.roles or []) for perm in (role.permissions or [])
+    }
+    extra_perms = {perm.id: perm for perm in (current_user.extra_permissions or [])}
+    revoked_ids = {perm.id for perm in (current_user.revoked_permissions or [])}
+
+    # Start from union of role+extra, then remove revoked
+    combined = {**role_perms, **extra_perms}
+    effective = [p for pid, p in combined.items() if pid not in revoked_ids]
 
     return {
-        # "user_id": current_user.id,
-        # "user_full_name": current_user.full_name,
-        # "email":current_user.email,
-        "permissions": [{"id": p.id, "name": p.name} for p in permissions]
+        "permissions": [{"id": p.id, "name": p.name} for p in effective]
     }
+
+
+@router.post(
+    "/grant_user_permission",
+    dependencies=[Depends(check_permission("manage_user_permissions"))],
+)
+def grant_user_permission(
+    user_id: str,
+    permission_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Grant an *extra* permission directly to a user (beyond what their roles provide).
+    Typically used by a company admin or super admin.
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    permission = db.query(Permission).filter(Permission.id == permission_id).first()
+    if not permission:
+        raise HTTPException(status_code=404, detail="Permission not found")
+
+    if permission in user.extra_permissions:
+        return {"message": "Permission already granted to user"}
+
+    # If this permission was explicitly revoked before, remove it from revoked set
+    if permission in user.revoked_permissions:
+        user.revoked_permissions.remove(permission)
+
+    user.extra_permissions.append(permission)
+    db.commit()
+    db.refresh(user)
+
+    return {"message": "Permission granted to user"}
+
+
+@router.post(
+    "/revoke_user_permission",
+    dependencies=[Depends(check_permission("manage_user_permissions"))],
+)
+def revoke_user_permission(
+    user_id: str,
+    permission_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Explicitly revoke a permission from a user.
+    This overrides any grants coming from roles or extra permissions.
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    permission = db.query(Permission).filter(Permission.id == permission_id).first()
+    if not permission:
+        raise HTTPException(status_code=404, detail="Permission not found")
+
+    # Remove from extra_permissions if present
+    if permission in user.extra_permissions:
+        user.extra_permissions.remove(permission)
+
+    if permission not in user.revoked_permissions:
+        user.revoked_permissions.append(permission)
+
+    db.commit()
+    db.refresh(user)
+
+    return {"message": "Permission revoked from user"}
 
 
 

@@ -20,6 +20,17 @@ class LoginUser(BaseModel):
     password_hash: str
 
 
+class CompanyLoginStart(BaseModel):
+    # Company-issued login email/identifier
+    login_email: EmailStr
+    password: str
+
+
+class CompanyLoginVerify(BaseModel):
+    login_email: EmailStr
+    code: str
+
+
 class UpdateUser(BaseModel):
     full_name: Optional[str] = None
     email: Optional[EmailStr] = None

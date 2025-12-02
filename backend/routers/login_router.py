@@ -1,9 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException, Body
-from methods.functions import create_user, login_user, get_current_user
+from fastapi import APIRouter, Depends, HTTPException, Body, status
+from methods.functions import (
+    create_user,
+    login_user,
+    get_current_user,
+    generate_otp_code,
+    create_access_token,
+    send_email,
+)
 from methods.permissions import check_permission
-from schemas.LoginRegisteScheme import RegisterUser, LoginUser, UpdateUser, UserOut
+from schemas.LoginRegisteScheme import RegisterUser, LoginUser, UpdateUser, UserOut, CompanyLoginStart, CompanyLoginVerify
 from database.dbs import get_db
-from database.models import *
+from database.models import User, Payment, Role, LoginOTP
+from datetime import datetime, UTC, timedelta
 from sqlalchemy.orm import Session
 from typing import List
 router = APIRouter(prefix="/api/v1", tags=["User Managment"])
@@ -11,6 +19,92 @@ router = APIRouter(prefix="/api/v1", tags=["User Managment"])
 @router.post("/login")
 async def login(user: LoginUser, db: Session = Depends(get_db)):
     return login_user(db, user)
+
+
+@router.post("/company-login/start")
+async def company_login_start(
+    payload: CompanyLoginStart,
+    db: Session = Depends(get_db),
+):
+    """
+    Step 1 of company login:
+    - User submits company-issued `login_email` and password.
+    - We verify password.
+    - We generate an OTP, persist it, and (you must) send it to the real `user.email`.
+    """
+    user = db.query(User).filter(User.login_email == payload.login_email).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    from methods.functions import verify_password  # avoid circular import at top
+
+    if not verify_password(payload.password, user.password_hash):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+
+    # Generate and store OTP
+    code = generate_otp_code()
+    expires_at = datetime.now(UTC) + timedelta(minutes=10)
+
+    otp_entry = LoginOTP(
+        user_id=user.id,
+        code=code,
+        expires_at=expires_at,
+        consumed=False,
+    )
+    db.add(otp_entry)
+    db.commit()
+
+    # Send OTP via Gmail SMTP to the user's real email
+    if user.email:
+        send_email(
+            to_email=user.email,
+            subject="Your login OTP",
+            body=f"Your OTP code is: {code}. It expires in 10 minutes.",
+        )
+
+    return {"message": "OTP sent to your registered email"}
+
+
+@router.post("/company-login/verify")
+async def company_login_verify(
+    payload: CompanyLoginVerify,
+    db: Session = Depends(get_db),
+):
+    """
+    Step 2 of company login:
+    - User submits company-issued `login_email` and the OTP code.
+    - If valid and not expired, issue a JWT token.
+    """
+    user = db.query(User).filter(User.login_email == payload.login_email).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    otp_entry = (
+        db.query(LoginOTP)
+        .filter(LoginOTP.user_id == user.id, LoginOTP.code == payload.code, LoginOTP.consumed == False)  # noqa: E712
+        .order_by(LoginOTP.expires_at.desc())
+        .first()
+    )
+
+    if not otp_entry:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid OTP code")
+
+    if otp_entry.expires_at < datetime.now(UTC):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="OTP has expired")
+
+    otp_entry.consumed = True
+    db.commit()
+
+    token = create_access_token(
+        data={"sub": str(user.id), "company_id": str(user.company_id)},
+        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+    )
+
+    return {
+        "message": "Login successful",
+        "access_token": token,
+        "token_type": "bearer",
+    }
 
 
 @router.post("/register", response_model=UserOut)
