@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Body
 from typing import List, Optional
 
 from sqlalchemy.orm import Session
-from sqlalchemy import orm
+from sqlalchemy import orm, func
 from datetime import datetime, UTC
 import uuid
 import qrcode
@@ -16,7 +16,7 @@ from uuid import UUID
 
 from dotenv import load_dotenv
 
-from database.models import Ticket, User, Bus, Route
+from database.models import Ticket, User, Bus, Route, BusStation
 from schemas.TicketsScheme import TicketCreate, TicketResponse
 from database.dbs import get_db
 
@@ -108,6 +108,7 @@ async def create_ticket(ticket_req: TicketCreate, db: Session = Depends(get_db))
         user_id=str(ticket_req.user_id),
         bus_id=str(ticket_req.bus_id),
         route_id=str(ticket_req.route_id),
+        schedule_id=str(ticket_req.schedule_id) if ticket_req.schedule_id else None,
         qr_code=signed_token,
         status="booked",
         created_at=datetime.now(UTC),
@@ -176,20 +177,31 @@ def get_all_tickets(db: Session = Depends(get_db), user: User = Depends(get_curr
 @router.get("/{ticket_id}", response_model=TicketResponse, dependencies=[Depends(get_current_user)])
 async def get_ticket(ticket_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     """
-    Retrieves a single ticket by its ID, restricted to the user's company.
+    Retrieves a single ticket by its ID.
     """
-    # company_id = user.company_id
-    # if not company_id:
-    #     raise HTTPException(status_code=403, detail="User is not associated with a company")
-
-    ticket = db.query(Ticket).filter(
-        Ticket.id == ticket_id
-        # Ticket.company_id == company_id
-    ).first()
+    ticket = db.query(Ticket).options(
+        orm.joinedload(Ticket.route),
+        orm.joinedload(Ticket.user),
+        orm.joinedload(Ticket.bus)
+    ).filter(Ticket.id == ticket_id).first()
+    
     if not ticket:
-        raise HTTPException(status_code=404, detail="Ticket not found or does not belong to your company")
-    route = db.query(Route).filter(Route.id == ticket.route).first()
-    origin_name = ticket.route.origin.name
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    
+    # Get route with stations
+    route = None
+    origin_name = None
+    destination_name = None
+    route_price = None
+    
+    if ticket.route_id:
+        route = db.query(Route).filter(Route.id == ticket.route_id).first()
+        if route:
+            origin_station = db.query(BusStation).filter(BusStation.id == route.origin_id).first()
+            destination_station = db.query(BusStation).filter(BusStation.id == route.destination_id).first()
+            origin_name = origin_station.name if origin_station else None
+            destination_name = destination_station.name if destination_station else None
+            route_price = route.price
 
     return TicketResponse(
         id=ticket.id,
@@ -198,7 +210,12 @@ async def get_ticket(ticket_id: str, db: Session = Depends(get_db), user: User =
         status=ticket.status,
         created_at=ticket.created_at,
         mode=ticket.mode,
-        route = {"origin":route.origin_id.name, "destination":route.destination_id.name}
+        route={
+            "origin": origin_name,
+            "destination": destination_name,
+            "price": route_price
+        },
+        bus=ticket.bus.plate_number if ticket.bus else None
     )
 
 # Soft deleting the ticket by user
@@ -321,3 +338,60 @@ async def admin_delete_ticket(ticket_id: str, db: Session = Depends(get_db), use
     db.commit()
 
     return {"message": "Ticket deleted by admin"}
+
+
+@router.post("/verify-qr")
+async def verify_qr_code(qr_token: str = Body(..., embed=True), db: Session = Depends(get_db)):
+    """
+    Verify a QR code token and return ticket information.
+    Used by company staff to verify tickets at boarding.
+    """
+    try:
+        # Decode the token
+        decoded = base64.urlsafe_b64decode(qr_token.encode())
+        parts = decoded.split(b".")
+        if len(parts) != 2:
+            raise HTTPException(status_code=400, detail="Invalid QR token format")
+        
+        ticket_id_bytes, signature = parts
+        
+        # Verify signature
+        expected_signature = hmac.new(key_bytes, ticket_id_bytes, hashlib.sha256).digest()
+        if not hmac.compare_digest(signature, expected_signature):
+            raise HTTPException(status_code=400, detail="Invalid QR token signature")
+        
+        ticket_id = ticket_id_bytes.decode()
+        
+        # Find ticket
+        ticket = db.query(Ticket).options(
+            orm.joinedload(Ticket.user),
+            orm.joinedload(Ticket.bus),
+            orm.joinedload(Ticket.route),
+            orm.joinedload(Ticket.schedule)
+        ).filter(Ticket.id == ticket_id).first()
+        
+        if not ticket:
+            raise HTTPException(status_code=404, detail="Ticket not found")
+        
+        if ticket.mode != "active":
+            raise HTTPException(status_code=400, detail="Ticket is not active")
+        
+        # Get route info
+        origin_station = None
+        destination_station = None
+        if ticket.route:
+            origin_station = db.query(BusStation).filter(BusStation.id == ticket.route.origin_id).first()
+            destination_station = db.query(BusStation).filter(BusStation.id == ticket.route.destination_id).first()
+        
+        return {
+            "valid": True,
+            "ticket_id": ticket.id,
+            "user_name": ticket.user.full_name if ticket.user else None,
+            "bus_plate": ticket.bus.plate_number if ticket.bus else None,
+            "route": f"{origin_station.name if origin_station else 'N/A'} → {destination_station.name if destination_station else 'N/A'}",
+            "status": ticket.status,
+            "created_at": ticket.created_at.isoformat() if ticket.created_at else None
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid QR code: {str(e)}")

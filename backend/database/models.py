@@ -12,16 +12,16 @@ from datetime import timedelta
 role_permissions = Table(
     "role_permissions",
     Base.metadata,
-    Column("role_id", String, ForeignKey("roles.id"), primary_key=True),
-    Column("permission_id", String, ForeignKey("permissions.id"), primary_key=True),
+    Column("role_id", String, ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True),
+    Column("permission_id", String, ForeignKey("permissions.id", ondelete="CASCADE"), primary_key=True),
 )
 
 # company_users <-> roles (many-to-many)
 company_user_roles = Table(
     "company_user_roles",
     Base.metadata,
-    Column("company_user_id", String, ForeignKey("company_users.id"), primary_key=True),
-    Column("role_id", String, ForeignKey("roles.id"), primary_key=True),
+    Column("company_user_id", String, ForeignKey("company_users.id", ondelete="CASCADE"), primary_key=True),
+    Column("role_id", String, ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True),
 )
 
 # company_users <-> extra permissions (many-to-many, per‑user grants)
@@ -34,7 +34,7 @@ company_user_extra_permissions = Table(
 
 # company_users <-> revoked permissions (many-to-many, per‑user explicit denies)
 company_user_revoked_permissions = Table(
-    "company_user_revoked_permissions",
+    "company_user_revoked_permissions",     
     Base.metadata,
     Column("company_user_id", String, ForeignKey("company_users.id"), primary_key=True),
     Column("permission_id", String, ForeignKey("permissions.id"), primary_key=True),

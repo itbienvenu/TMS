@@ -86,18 +86,24 @@ def send_email(to_email: str, subject: str, body: str):
     - GMAIL_SMTP_USER: your Gmail address
     - GMAIL_SMTP_PASSWORD: an App Password (not your normal Gmail password)
     """
+    # Mock email sending if credentials are not set or for development
     if not GMAIL_SMTP_USER or not GMAIL_SMTP_PASSWORD:
-        raise RuntimeError("GMAIL_SMTP_USER and GMAIL_SMTP_PASSWORD must be set in environment")
+        print(f"\n[MOCK EMAIL] To: {to_email}\nSubject: {subject}\nBody: {body}\n")
+        return
 
-    msg = EmailMessage()
-    msg["From"] = GMAIL_SMTP_USER
-    msg["To"] = to_email
-    msg["Subject"] = subject
-    msg.set_content(body)
+    try:
+        msg = EmailMessage()
+        msg["From"] = GMAIL_SMTP_USER
+        msg["To"] = to_email
+        msg["Subject"] = subject
+        msg.set_content(body)
 
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
-        smtp.login(GMAIL_SMTP_USER, GMAIL_SMTP_PASSWORD)
-        smtp.send_message(msg)
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+            smtp.login(GMAIL_SMTP_USER, GMAIL_SMTP_PASSWORD)
+            smtp.send_message(msg)
+    except Exception as e:
+        print(f"\n[EMAIL ERROR] Failed to send email: {e}")
+        print(f"[FALLBACK] To: {to_email}\nSubject: {subject}\nBody: {body}\n")
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme), db: Session = Depends(get_db)):
     """

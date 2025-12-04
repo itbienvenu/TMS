@@ -9,6 +9,7 @@ class TicketCreate(BaseModel):
     user_id: UUID = Field(..., description="ID of the user booking the ticket")
     bus_id: UUID = Field(..., description="ID of the bus")
     route_id: UUID = Field(..., description="ID of the route")
+    schedule_id: Optional[UUID] = Field(None, description="ID of the schedule (optional)")
 
   
 

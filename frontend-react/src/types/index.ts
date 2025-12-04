@@ -74,6 +74,7 @@ export interface TicketCreate {
     user_id: string;
     bus_id: string;
     route_id: string;
+    schedule_id?: string;
 }
 
 export interface BusStation {

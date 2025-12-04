@@ -6,6 +6,7 @@ from methods.functions import (
     generate_otp_code,
     create_access_token,
     send_email,
+    ACCESS_TOKEN_EXPIRE_MINUTES,
 )
 from methods.permissions import check_permission, get_current_company_user
 from schemas.LoginRegisteScheme import RegisterUser, LoginUser, UpdateUser, UserOut, CompanyLoginStart, CompanyLoginVerify
@@ -89,7 +90,12 @@ async def company_login_verify(
     if not otp_entry:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid OTP code")
 
-    if otp_entry.expires_at < datetime.now(UTC):
+    # Ensure expires_at is timezone-aware for comparison
+    expires_at = otp_entry.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=UTC)
+
+    if expires_at < datetime.now(UTC):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="OTP has expired")
 
     otp_entry.consumed = True

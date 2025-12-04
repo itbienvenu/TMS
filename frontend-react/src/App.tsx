@@ -1,104 +1,32 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Navbar from './components/Navbar';
+import Home from './pages/Home';
+import SearchResults from './pages/SearchResults';
+import Login from './pages/Login';
+import Register from './pages/Register';
 import { useAuthStore } from './store/authStore';
-import './styles/index.css';
-
-// Layout
-import MainLayout from './components/layout/MainLayout';
-import AuthLayout from './components/layout/AuthLayout';
-
-// Pages
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import DashboardPage from './pages/DashboardPage';
-import TicketsPage from './pages/TicketsPage';
-import MyTicketsPage from './pages/MyTicketsPage';
-import BusesPage from './pages/BusesPage';
-import RoutesPage from './pages/RoutesPage';
-import StationsPage from './pages/StationsPage';
-
-// Create a client
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      retry: 1,
-    },
-  },
-});
-
-// Protected Route Component
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return <>{children}</>;
-}
-
-// Public Route Component (redirect to dashboard if authenticated)
-function PublicRoute({ children }: { children: React.ReactNode }) {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-
-  if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  return <>{children}</>;
-}
 
 function App() {
+  const { checkAuth } = useAuthStore();
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+    <Router>
+      <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
+        <Navbar />
         <Routes>
-          {/* Public Routes */}
-          <Route
-            path="/login"
-            element={
-              <PublicRoute>
-                <AuthLayout>
-                  <LoginPage />
-                </AuthLayout>
-              </PublicRoute>
-            }
-          />
-          <Route
-            path="/register"
-            element={
-              <PublicRoute>
-                <AuthLayout>
-                  <RegisterPage />
-                </AuthLayout>
-              </PublicRoute>
-            }
-          />
-
-          {/* Protected Routes */}
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <MainLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="dashboard" element={<DashboardPage />} />
-            <Route path="tickets" element={<TicketsPage />} />
-            <Route path="my-tickets" element={<MyTicketsPage />} />
-            <Route path="buses" element={<BusesPage />} />
-            <Route path="routes" element={<RoutesPage />} />
-            <Route path="stations" element={<StationsPage />} />
-          </Route>
-
-          {/* Catch all */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="/" element={<Home />} />
+          <Route path="/search" element={<SearchResults />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          {/* Add more routes as needed */}
         </Routes>
-      </BrowserRouter>
-    </QueryClientProvider>
+      </div>
+    </Router>
   );
 }
 
