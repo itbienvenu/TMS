@@ -3,18 +3,68 @@
         xmlns:vm="using:CompanyDashboard.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
         x:Class="CompanyDashboard.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
-        Title="CompanyDashboard">
+        Title="Company Dashboard - {Binding CurrentPageTitle}"
+        Width="1200" Height="800"
+        WindowStartupLocation="CenterScreen">
 
     <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
-             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <TextBlock Text="{Binding Greeting}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="250"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
 
+        <!-- Sidebar Navigation -->
+        <Border Grid.Column="0" Background="#2C3E50" Padding="10">
+            <StackPanel Spacing="10">
+                <TextBlock Text="Company Dashboard" FontSize="20" FontWeight="Bold" Foreground="White" Margin="0,10,0,20"/>
+                
+                <Button Content="📊 Dashboard" Command="{Binding NavigateToDashboardCommand}" 
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="15,10"
+                        Background="Transparent" Foreground="White" BorderThickness="0"/>
+                
+                <Button Content="🚌 Buses" Command="{Binding NavigateToBusesCommand}" 
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="15,10"
+                        Background="Transparent" Foreground="White" BorderThickness="0"/>
+                
+                <Button Content="🛣️ Routes" Command="{Binding NavigateToRoutesCommand}" 
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="15,10"
+                        Background="Transparent" Foreground="White" BorderThickness="0"/>
+                
+                <Button Content="📍 Stations" Command="{Binding NavigateToStationsCommand}" 
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="15,10"
+                        Background="Transparent" Foreground="White" BorderThickness="0"/>
+                
+                <Button Content="📅 Schedules" Command="{Binding NavigateToSchedulesCommand}" 
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="15,10"
+                        Background="Transparent" Foreground="White" BorderThickness="0"/>
+                
+                <Button Content="🎫 Tickets" Command="{Binding NavigateToTicketsCommand}" 
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="15,10"
+                        Background="Transparent" Foreground="White" BorderThickness="0"/>
+                
+                <Separator Margin="0,20,0,20" Background="#34495E"/>
+                
+                <Button Content="🚪 Logout" Command="{Binding LogoutCommand}" 
+                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="15,10"
+                        Background="Transparent" Foreground="#E74C3C" BorderThickness="0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Main Content Area -->
+        <ContentControl Grid.Column="1" Content="{Binding CurrentViewModel}" Margin="20">
+            <ContentControl.ContentTemplate>
+                <DataTemplate>
+                    <ContentPresenter Content="{Binding}"/>
+                </DataTemplate>
+            </ContentControl.ContentTemplate>
+        </ContentControl>
+    </Grid>
 </Window>

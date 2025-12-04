@@ -35,6 +35,8 @@ public partial class LoginViewModel : ViewModelBase
     
     public bool HasInfoMessage => !string.IsNullOrWhiteSpace(InfoMessage);
 
+    public event Action? NavigateToMainWindow;
+
     public LoginViewModel()
     {
         _authService = new AuthService();
@@ -90,13 +92,16 @@ public partial class LoginViewModel : ViewModelBase
         {
             var response = await _authService.VerifyOtpAsync(LoginEmail, OtpCode);
             
-            // Store the token (you can use secure storage or settings)
-            // For now, we'll just show a success message
-            InfoMessage = $"Login successful! Token: {response.AccessToken.Substring(0, 20)}...";
+            // Store the token
+            TokenStorage.AccessToken = response.AccessToken;
+            TokenStorage.LoginEmail = LoginEmail;
+            
+            InfoMessage = "Login successful! Redirecting...";
             OnPropertyChanged(nameof(HasInfoMessage));
             
-            // TODO: Navigate to dashboard or main window
-            // You can implement navigation here
+            // Navigate to main window
+            await Task.Delay(500);
+            NavigateToMainWindow?.Invoke();
         }
         catch (Exception ex)
         {

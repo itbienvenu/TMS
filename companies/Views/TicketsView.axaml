@@ -1,0 +1,59 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CompanyDashboard.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="CompanyDashboard.Views.TicketsView"
+             x:DataType="vm:TicketsViewModel">
+
+    <ScrollViewer>
+        <StackPanel Spacing="20" Margin="20">
+            <Grid>
+                <TextBlock Text="Ticket Management" FontSize="24" FontWeight="Bold"/>
+                <Button Content="🔄 Refresh" Command="{Binding RefreshCommand}" HorizontalAlignment="Right"/>
+            </Grid>
+
+            <!-- QR Code Verification -->
+            <Border BorderBrush="#BDC3C7" BorderThickness="1" CornerRadius="8" Padding="15">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Verify QR Code" FontSize="18" FontWeight="Bold"/>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBox Grid.Column="0" Text="{Binding QrCodeInput}" Watermark="Enter QR code token" Margin="0,0,10,0"/>
+                        <Button Grid.Column="1" Content="Verify" Command="{Binding VerifyQrCodeCommand}"/>
+                    </Grid>
+                    <TextBlock Text="{Binding VerificationResult}" Foreground="Green" FontWeight="Bold"/>
+                    <TextBlock Text="{Binding ErrorMessage}" Foreground="Red" TextWrapping="Wrap"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Tickets List -->
+            <Border BorderBrush="#BDC3C7" BorderThickness="1" CornerRadius="8" Padding="15">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="All Tickets" FontSize="18" FontWeight="Bold"/>
+                    
+                    <ListBox ItemsSource="{Binding Tickets}" SelectedItem="{Binding SelectedTicket}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Padding="10">
+                                    <Grid ColumnDefinitions="150,*,100,150,*">
+                                        <TextBlock Grid.Column="0" Text="{Binding Id}" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding FullName}" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding Status}" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="3" Text="{Binding CreatedAt, StringFormat='{}{0:g}'}" VerticalAlignment="Center"/>
+                                        <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="5" HorizontalAlignment="Right">
+                                            <Button Content="✅ Paid" Padding="5" Click="OnMarkPaid"/>
+                                            <Button Content="❌ Cancel" Padding="5" Click="OnMarkCancelled"/>
+                                            <Button Content="🗑️ Delete" Padding="5" Click="OnDelete"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
+

@@ -8,7 +8,16 @@ public partial class LoginView : Window
     public LoginView()
     {
         InitializeComponent();
-        DataContext = new LoginViewModel();
+        var viewModel = new LoginViewModel();
+        viewModel.NavigateToMainWindow += OnNavigateToMainWindow;
+        DataContext = viewModel;
+    }
+
+    private void OnNavigateToMainWindow()
+    {
+        var mainWindow = new MainWindow();
+        mainWindow.Show();
+        this.Close();
     }
 }
 

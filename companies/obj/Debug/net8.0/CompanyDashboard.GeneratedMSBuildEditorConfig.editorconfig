@@ -22,8 +22,26 @@ build_property.EnableGeneratedComInterfaceComImportInterop =
 [/home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/companies/App.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
+[/home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/companies/Views/BusesView.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[/home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/companies/Views/DashboardView.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
 [/home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/companies/Views/LoginView.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
 [/home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/companies/Views/MainWindow.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[/home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/companies/Views/RoutesView.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[/home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/companies/Views/SchedulesView.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[/home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/companies/Views/StationsView.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[/home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/companies/Views/TicketsView.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml

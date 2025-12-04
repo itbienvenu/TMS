@@ -72,7 +72,7 @@ def seed_database():
         db.add(company1)
         db.add(company2)
         db.commit()
-        print(f"✅ Created companies: {company1.name}, {company2.name}")
+        print(f"Created companies: {company1.name}, {company2.name}")
         
         # 2. Create Regular Users (customers)
         print("👥 Creating regular users...")
@@ -99,7 +99,7 @@ def seed_database():
         db.add(user1)
         db.add(user2)
         db.commit()
-        print(f"✅ Created users: {user1.full_name}, {user2.full_name}")
+        print(f"Created users: {user1.full_name}, {user2.full_name}")
         
         # 3. Create Super Admin Role and User
         print("👑 Creating super admin...")
@@ -124,7 +124,7 @@ def seed_database():
         super_admin.roles.append(super_admin_role)
         db.add(super_admin)
         db.commit()
-        print("✅ Created super admin")
+        print("Created super admin")
         
         # 4. Create Company Admin Roles
         print("🏢 Creating company admin roles...")
@@ -171,7 +171,7 @@ def seed_database():
         db.add(company_user1)
         db.add(company_user2)
         db.commit()
-        print(f"✅ Created company users: {company_user1.full_name}, {company_user2.full_name}")
+        print(f"Created company users: {company_user1.full_name}, {company_user2.full_name}")
         
         # 6. Create Bus Stations
         print("📍 Creating bus stations...")
@@ -185,7 +185,7 @@ def seed_database():
         for station in stations:
             db.add(station)
         db.commit()
-        print(f"✅ Created {len(stations)} bus stations")
+        print(f"Created {len(stations)} bus stations")
         
         # 7. Create Routes
         print("🛣️  Creating routes...")
@@ -220,7 +220,7 @@ def seed_database():
         db.add(route2)
         db.add(route3)
         db.commit()
-        print(f"✅ Created routes")
+        print(f"Created routes")
         
         # 8. Create Route Segments
         print("🔗 Creating route segments...")
@@ -258,7 +258,7 @@ def seed_database():
         db.add(segment2)
         db.add(segment3)
         db.commit()
-        print(f"✅ Created route segments")
+        print(f"Created route segments")
         
         # 9. Create Buses
         print("🚌 Creating buses...")
@@ -296,7 +296,7 @@ def seed_database():
         db.add(bus2)
         db.add(bus3)
         db.commit()
-        print(f"✅ Created buses")
+        print(f"Created buses")
         
         # 10. Create Schedules
         print("📅 Creating schedules...")
@@ -343,7 +343,7 @@ def seed_database():
         db.add(schedule3)
         db.add(schedule4)
         db.commit()
-        print(f"✅ Created schedules")
+        print(f"Created schedules")
         
         # 11. Create Sample Tickets
         print("🎫 Creating sample tickets...")
@@ -394,7 +394,7 @@ def seed_database():
         db.add(ticket1)
         db.add(ticket2)
         db.commit()
-        print(f"✅ Created sample tickets")
+        print(f"Created sample tickets")
         
         # 12. Create Sample Payment
         print("💳 Creating sample payment...")
@@ -411,10 +411,10 @@ def seed_database():
         
         db.add(payment1)
         db.commit()
-        print(f"✅ Created sample payment")
+        print(f"Created sample payment")
         
         print("\n" + "="*50)
-        print("✅ Database seeding completed successfully!")
+        print("Database seeding completed successfully!")
         print("="*50)
         print("\n📋 Test Credentials:")
         print("\n👤 Regular Users (Customer Portal):")
