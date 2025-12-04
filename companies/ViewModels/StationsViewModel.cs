@@ -38,6 +38,7 @@ public partial class StationsViewModel : ViewModelBase
         var token = TokenStorage.AccessToken;
         _stationService = new StationService(token);
         LoadDataAsync().ConfigureAwait(false);
+        NewStation(); // Open the creation form by default
     }
 
     private async Task LoadDataAsync()
