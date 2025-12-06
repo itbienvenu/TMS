@@ -96,11 +96,16 @@ public partial class LoginViewModel : ViewModelBase
             TokenStorage.AccessToken = response.AccessToken;
             TokenStorage.LoginEmail = LoginEmail;
             
+            if (!TokenStorage.IsAuthenticated)
+            {
+                throw new Exception("Authentication token could not be stored.");
+            }
+
             InfoMessage = "Login successful! Redirecting...";
             OnPropertyChanged(nameof(HasInfoMessage));
             
             // Navigate to main window
-            await Task.Delay(500);
+            await Task.Delay(1500); // Increased delay slightly
             NavigateToMainWindow?.Invoke();
         }
         catch (Exception ex)

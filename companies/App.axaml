@@ -2,12 +2,17 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="CompanyDashboard.App"
              xmlns:local="using:CompanyDashboard"
+             xmlns:converters="using:CompanyDashboard.Converters"
              RequestedThemeVariant="Default">
              <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
 
     <Application.DataTemplates>
         <local:ViewLocator/>
     </Application.DataTemplates>
+
+    <Application.Resources>
+        <converters:NullToTextConverter x:Key="NullToTextConverter"/>
+    </Application.Resources>
   
     <Application.Styles>
         <FluentTheme />

@@ -1,4 +1,6 @@
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using CompanyDashboard.ViewModels;
 
 namespace CompanyDashboard.Views;
@@ -16,6 +18,12 @@ public partial class LoginView : Window
     private void OnNavigateToMainWindow()
     {
         var mainWindow = new MainWindow();
+        
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        {
+            desktop.MainWindow = mainWindow;
+        }
+        
         mainWindow.Show();
         this.Close();
     }

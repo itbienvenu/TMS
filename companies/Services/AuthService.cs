@@ -69,16 +69,37 @@ public class AuthService
         
         if (response.IsSuccessStatusCode)
         {
-            var result = await response.Content.ReadFromJsonAsync<CompanyLoginVerifyResponse>();
-            return result ?? throw new Exception("Invalid response from server");
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
+            var result = await response.Content.ReadFromJsonAsync<CompanyLoginVerifyResponse>(options);
+            
+            if (result == null)
+                throw new Exception("Received empty response from server");
+
+            if (string.IsNullOrEmpty(result.AccessToken))
+            {
+                // Try reading raw content to debug
+                // var raw = await response.Content.ReadAsStringAsync();
+                // throw new Exception($"Server returned success but no access_token. Raw: {raw}");
+                throw new Exception("Server returned success but access_token is missing or empty.");
+            }
+
+            return result;
         }
         else
         {
             var errorContent = await response.Content.ReadAsStringAsync();
             try
             {
-                var error = JsonSerializer.Deserialize<ApiErrorResponse>(errorContent);
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var error = JsonSerializer.Deserialize<ApiErrorResponse>(errorContent, options);
                 throw new Exception(error?.Detail ?? "OTP verification failed");
+            }
+            catch(Exception ex) when (ex.Message != "OTP verification failed") 
+            {
+                 throw new Exception($"OTP verification failed: {response.StatusCode} - {errorContent}");
             }
             catch
             {

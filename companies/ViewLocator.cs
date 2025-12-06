@@ -19,8 +19,14 @@ public class ViewLocator : IDataTemplate
         if (param is null)
             return null;
         
-        var name = param.GetType().FullName!.Replace("ViewModel", "View", StringComparison.Ordinal);
-        var type = Type.GetType(name);
+        var name = param.GetType().FullName!.Replace("ViewModel", "View", StringComparison.Ordinal).Replace("ViewModels", "Views", StringComparison.Ordinal);
+        // Correct for potential double-replacement or mismatch if namespaces differ slightly
+        if (!name.Contains(".Views."))
+        {
+             name = name.Replace("CompanyDashboard.ViewModels", "CompanyDashboard.Views");
+        }
+        
+        var type = typeof(App).Assembly.GetType(name);
 
         if (type != null)
         {
