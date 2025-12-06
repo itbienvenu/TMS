@@ -24,13 +24,10 @@ async def create_bus(
     Endpoint to create a new bus for the current user's company.
     Routes are optional — they can be attached later.
     """
-    # Check if plate number already exists within the user's company
-    existing_bus = db.query(Bus).filter(
-        Bus.plate_number == bus.plate_number,
-        Bus.company_id == current_user.company_id
-    ).first()
+    # Check if plate number already exists globally
+    existing_bus = db.query(Bus).filter(Bus.plate_number == bus.plate_number).first()
     if existing_bus:
-        raise HTTPException(status_code=400, detail="Bus with this plate number already exists for your company.")
+        raise HTTPException(status_code=400, detail="Bus with this plate number already exists.")
 
     # Create new bus
     new_bus = Bus(
@@ -48,7 +45,7 @@ async def create_bus(
             Route.id.in_([str(rid) for rid in bus.route_ids]),
             Route.company_id == current_user.company_id
         ).all()
-        if not routes or len(routes) != len(bus.route_ids):
+        if len(routes) != len(set(bus.route_ids)):
             raise HTTPException(status_code=404, detail="One or more routes not found or not part of your company.")
         new_bus.routes = routes
 
@@ -137,6 +134,13 @@ def update_bus(
 
     # Update only fields that are provided
     if bus_update.plate_number is not None:
+        # Check uniqueness excluding current bus
+        existing = db.query(Bus).filter(
+            Bus.plate_number == bus_update.plate_number,
+            Bus.id != bus_id
+        ).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Bus with this plate number already exists.")
         bus.plate_number = bus_update.plate_number
     if bus_update.capacity is not None:
         bus.capacity = bus_update.capacity
@@ -146,7 +150,7 @@ def update_bus(
             Route.id.in_([str(rid) for rid in bus_update.route_ids]),
             Route.company_id == current_user.company_id
         ).all()
-        if not routes or len(routes) != len(bus_update.route_ids):
+        if len(routes) != len(set(bus_update.route_ids)):
             raise HTTPException(status_code=404, detail="One or more routes not found or not part of your company.")
         bus.routes = routes
 
