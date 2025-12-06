@@ -118,7 +118,10 @@ async def get_company_users(
     Super admins cannot access company users - they can only manage companies.
     """
     company_users = db.query(CompanyUser).filter(CompanyUser.company_id == current_user.company_id).all()
+    
     return company_users
+
+
 
 
 @router.get(

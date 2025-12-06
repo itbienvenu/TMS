@@ -1,0 +1,31 @@
+
+> frontend-react@0.0.0 dev
+> vite
+
+node:internal/fs/watchers:254
+    const error = new UVException({
+                  ^
+
+Error: EMFILE: too many open files, watch '/home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/frontend-react/vite.config.ts'
+    at FSWatcher.<computed> (node:internal/fs/watchers:254:19)
+    at Object.watch (node:fs:2549:36)
+    at createFsWatchInstance (file:///home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/frontend-react/node_modules/vite/dist/node/chunks/config.js:12941:16)
+    at setFsWatchListener (file:///home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/frontend-react/node_modules/vite/dist/node/chunks/config.js:12983:14)
+    at NodeFsHandler$1._watchWithNodeFs (file:///home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/frontend-react/node_modules/vite/dist/node/chunks/config.js:13097:20)
+    at NodeFsHandler$1._handleFile (file:///home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/frontend-react/node_modules/vite/dist/node/chunks/config.js:13141:24)
+    at NodeFsHandler$1._addToNodeFs (file:///home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/frontend-react/node_modules/vite/dist/node/chunks/config.js:13315:26)
+    at async file:///home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/frontend-react/node_modules/vite/dist/node/chunks/config.js:13957:18
+    at async Promise.all (index 1)
+Emitted 'error' event on FSWatcher instance at:
+    at FSWatcher._handleError (file:///home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/frontend-react/node_modules/vite/dist/node/chunks/config.js:14116:148)
+    at NodeFsHandler$1._addToNodeFs (file:///home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/frontend-react/node_modules/vite/dist/node/chunks/config.js:13320:18)
+    at async file:///home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/frontend-react/node_modules/vite/dist/node/chunks/config.js:13957:18
+    at async Promise.all (index 1) {
+  errno: -24,
+  syscall: 'watch',
+  code: 'EMFILE',
+  path: '/home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/frontend-react/vite.config.ts',
+  filename: '/home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/frontend-react/vite.config.ts'
+}
+
+Node.js v22.20.0

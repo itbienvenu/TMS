@@ -5,6 +5,10 @@ import Home from './pages/Home';
 import SearchResults from './pages/SearchResults';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import BookTicketPage from './pages/BookTicketPage';
+import PaymentPage from './pages/PaymentPage';
+import DashboardPage from './pages/DashboardPage';
+import MyTicketsPage from './pages/MyTicketsPage';
 import { useAuthStore } from './store/authStore';
 
 function App() {
@@ -23,7 +27,10 @@ function App() {
           <Route path="/search" element={<SearchResults />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          {/* Add more routes as needed */}
+          <Route path="/book/:scheduleId" element={<BookTicketPage />} />
+          <Route path="/payment/:ticketId" element={<PaymentPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/my-tickets" element={<MyTicketsPage />} />
         </Routes>
       </div>
     </Router>

@@ -38,7 +38,7 @@ class UpdateUser(BaseModel):
     role: Optional[str] = None  # role name
 
 class UserOut(BaseModel):
-    id: UUID
+    id: str
     full_name: str
     email: EmailStr
     phone_number: Optional[str] = None

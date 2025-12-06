@@ -54,6 +54,7 @@ class CompanyUserResponse(BaseModel):
     full_name: str
     email: str
     phone_number: str
+    role: Optional[str] = None
     company_id: Optional[str] = None
 
     class Config:
