@@ -16,6 +16,7 @@ class RouteOut(BaseModel):
     origin: Optional[str] = None
     destination: Optional[str] = None
     company_id: Optional[str] = None
+    price: Optional[float] = None
     created_at: Optional[datetime] = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     class Config:

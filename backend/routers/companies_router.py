@@ -17,6 +17,8 @@ from passlib.hash import bcrypt
 # Define a new router for company management
 router = APIRouter(prefix="/api/v1/companies", tags=["Companies"])
 
+
+
 @router.post(
     "/create_company",
     response_model=CompanyResponse,
@@ -28,9 +30,11 @@ async def create_new_company(
     db: Session = Depends(get_db)
 ):
     """
-    Creates a new company. Only creates the company - no user is created.
-    The company super admin will be created separately and will have all permissions.
-    This endpoint is for the main system admin.
+    Creates a new company.
+    - Creates the company record.
+    - Copies all global permissions to this company's scope.
+    - Creates a default 'admin' role for this company.
+    - Assigns all copied permissions to the 'admin' role.
     """
     # Check if company name or email already exists
     if db.query(Company).filter(Company.name == company_data.name).first():
@@ -49,6 +53,37 @@ async def create_new_company(
             created_at=datetime.now(UTC)
         )
         db.add(new_company)
+        # Flush to get ID, but don't commit transaction yet until permissions/roles are done
+        db.flush() 
+        db.refresh(new_company)
+        
+        # 1. Fetch Global Permissions (Templates)
+        global_perms = db.query(Permission).filter(Permission.company_id == None).all()
+        
+        # 2. Create Default 'Admin' Role for this company
+        admin_role = Role(
+            id=str(uuid.uuid4()),
+            name="admin", 
+            company_id=new_company.id
+        )
+        db.add(admin_role)
+
+        # 3. Replicate permissions for this company and assign to Admin role
+        company_permissions = []
+        for gp in global_perms:
+            cp = Permission(
+                id=str(uuid.uuid4()),
+                name=gp.name,
+                company_id=new_company.id
+            )
+            company_permissions.append(cp)
+        
+        db.add_all(company_permissions)
+        
+        # Link permissions to role
+        admin_role.permissions = company_permissions 
+        
+        # Commit everything
         db.commit()
         db.refresh(new_company)
         
