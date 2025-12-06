@@ -23,8 +23,8 @@
                             <DataTemplate>
                                 <Border BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Padding="10">
                                     <Grid ColumnDefinitions="*,*,*">
-                                        <TextBlock Grid.Column="0" Text="{Binding Name}" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="1" Text="{Binding Location}" VerticalAlignment="Center"/>
+                                        <TextBox Grid.Column="0" Text="{Binding Name}" VerticalAlignment="Center" IsReadOnly="True" BorderThickness="0" Background="Transparent"/>
+                                        <TextBox Grid.Column="1" Text="{Binding Location}" VerticalAlignment="Center" IsReadOnly="True" BorderThickness="0" Background="Transparent"/>
                                         <Button Grid.Column="2" Content="🗑️ Delete" Padding="5" Click="OnDeleteStation" HorizontalAlignment="Right"/>
                                     </Grid>
                                 </Border>

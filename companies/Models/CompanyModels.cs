@@ -35,7 +35,7 @@ public class BusCreate
     public int Capacity { get; set; }
     
     [JsonPropertyName("route_ids")]
-    public List<string>? RouteIds { get; set; }
+    public List<string> RouteIds { get; set; } = new();
 }
 
 public class BusUpdate
@@ -47,7 +47,7 @@ public class BusUpdate
     public int? Capacity { get; set; }
     
     [JsonPropertyName("route_ids")]
-    public List<string>? RouteIds { get; set; }
+    public List<string> RouteIds { get; set; } = new();
 }
 
 // Route Models

@@ -23,9 +23,9 @@
                             <DataTemplate>
                                 <Border BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Padding="10">
                                     <Grid ColumnDefinitions="*,*,120,*">
-                                        <TextBlock Grid.Column="0" Text="{Binding Origin}" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="1" Text="{Binding Destination}" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="2" Text="{Binding Price, StringFormat='{}{0:F} FCFA'}" VerticalAlignment="Center"/>
+                                        <TextBox Grid.Column="0" Text="{Binding Origin}" VerticalAlignment="Center" IsReadOnly="True" BorderThickness="0" Background="Transparent"/>
+                                        <TextBox Grid.Column="1" Text="{Binding Destination}" VerticalAlignment="Center" IsReadOnly="True" BorderThickness="0" Background="Transparent"/>
+                                        <TextBox Grid.Column="2" Text="{Binding Price, StringFormat='{}{0:F} FCFA'}" VerticalAlignment="Center" IsReadOnly="True" BorderThickness="0" Background="Transparent"/>
                                         <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="5" HorizontalAlignment="Right">
                                             <Button Content="✏️ Edit" Padding="5" Click="OnEditRoute"/>
                                             <Button Content="🗑️ Delete" Padding="5" Click="OnDeleteRoute"/>

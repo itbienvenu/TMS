@@ -22,8 +22,8 @@
                         <TextBox Grid.Column="0" Text="{Binding QrCodeInput}" Watermark="Enter QR code token" Margin="0,0,10,0"/>
                         <Button Grid.Column="1" Content="Verify" Command="{Binding VerifyQrCodeCommand}"/>
                     </Grid>
-                    <TextBlock Text="{Binding VerificationResult}" Foreground="Green" FontWeight="Bold"/>
-                    <TextBlock Text="{Binding ErrorMessage}" Foreground="Red" TextWrapping="Wrap"/>
+                    <TextBox Text="{Binding VerificationResult}" Foreground="Green" FontWeight="Bold" IsReadOnly="True" BorderThickness="0" Background="Transparent"/>
+                    <TextBox Text="{Binding ErrorMessage}" Foreground="Red" TextWrapping="Wrap" IsReadOnly="True" BorderThickness="0" Background="Transparent"/>
                 </StackPanel>
             </Border>
 
@@ -37,10 +37,10 @@
                             <DataTemplate>
                                 <Border BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Padding="10">
                                     <Grid ColumnDefinitions="150,*,100,150,*">
-                                        <TextBlock Grid.Column="0" Text="{Binding Id}" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="1" Text="{Binding FullName}" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="2" Text="{Binding Status}" VerticalAlignment="Center"/>
-                                        <TextBlock Grid.Column="3" Text="{Binding CreatedAt, StringFormat='{}{0:g}'}" VerticalAlignment="Center"/>
+                                        <TextBox Grid.Column="0" Text="{Binding Id}" VerticalAlignment="Center" IsReadOnly="True" BorderThickness="0" Background="Transparent"/>
+                                        <TextBox Grid.Column="1" Text="{Binding FullName}" VerticalAlignment="Center" IsReadOnly="True" BorderThickness="0" Background="Transparent"/>
+                                        <TextBox Grid.Column="2" Text="{Binding Status}" VerticalAlignment="Center" IsReadOnly="True" BorderThickness="0" Background="Transparent"/>
+                                        <TextBox Grid.Column="3" Text="{Binding CreatedAt, StringFormat='{}{0:g}'}" VerticalAlignment="Center" IsReadOnly="True" BorderThickness="0" Background="Transparent"/>
                                         <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="5" HorizontalAlignment="Right">
                                             <Button Content="✅ Paid" Padding="5" Click="OnMarkPaid"/>
                                             <Button Content="❌ Cancel" Padding="5" Click="OnMarkCancelled"/>
