@@ -7,82 +7,116 @@
              x:Class="CompanyDashboard.Views.SchedulesView"
              x:DataType="vm:SchedulesViewModel">
 
-    <Grid RowDefinitions="Auto,*">
-        <Grid Grid.Row="0" Margin="0,0,0,20">
-            <TextBlock Text="Schedule Management" FontSize="24" FontWeight="Bold"/>
+    <Grid RowDefinitions="Auto,*" Margin="{StaticResource PageMargin}">
+        <Grid Grid.Row="0">
+            <TextBlock Classes="Header" Text="Schedule Management"/>
             <Button Content="➕ New Schedule" Command="{Binding NewScheduleCommand}" HorizontalAlignment="Right"/>
         </Grid>
 
         <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
-            <Border Grid.Column="0" BorderBrush="#BDC3C7" BorderThickness="1" CornerRadius="8" Padding="15" Margin="0,0,10,0">
-                <StackPanel Spacing="10">
-                    <Button Content="🔄 Refresh" Command="{Binding RefreshCommand}" HorizontalAlignment="Right"/>
-                    
-                    <ListBox ItemsSource="{Binding Schedules}" SelectedItem="{Binding SelectedSchedule}">
+            <!-- Schedule List Card -->
+            <Border Grid.Column="0" Classes="Card" Margin="0,0,20,0">
+                <Grid RowDefinitions="Auto,Auto,*">
+                    <Grid Grid.Row="0" Margin="0,0,0,10">
+                         <TextBlock Text="Departures" FontSize="18" FontWeight="Bold" Foreground="{StaticResource DarkTextBrush}"/>
+                         <Button Classes="Outline" Content="🔄 Refresh" Command="{Binding RefreshCommand}" HorizontalAlignment="Right"/>
+                    </Grid>
+
+                    <!-- Table Header -->
+                     <Grid Grid.Row="1" ColumnDefinitions="160,160,100,*" Margin="15,0,15,5">
+                        <TextBlock Grid.Column="0" Text="DEPARTURE" FontWeight="SemiBold" Foreground="{StaticResource LightTextBrush}" FontSize="12"/>
+                        <TextBlock Grid.Column="1" Text="ARRIVAL" FontWeight="SemiBold" Foreground="{StaticResource LightTextBrush}" FontSize="12"/>
+                        <TextBlock Grid.Column="2" Text="BUS ID" FontWeight="SemiBold" Foreground="{StaticResource LightTextBrush}" FontSize="12"/>
+                        <TextBlock Grid.Column="3" Text="ACTIONS" FontWeight="SemiBold" Foreground="{StaticResource LightTextBrush}" FontSize="12" HorizontalAlignment="Right"/>
+                    </Grid>
+                    <Separator Grid.Row="1" VerticalAlignment="Bottom" Background="{StaticResource BorderBrush}" Margin="0,5"/>
+
+                    <ListBox Grid.Row="2" ItemsSource="{Binding Schedules}" SelectedItem="{Binding SelectedSchedule}" Background="Transparent" BorderThickness="0">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <Border BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Padding="10">
-                                    <Grid ColumnDefinitions="150,150,100,*">
-                                        <TextBox Grid.Column="0" Text="{Binding DepartureTime, StringFormat='{}{0:g}'}" VerticalAlignment="Center" IsReadOnly="True" BorderThickness="0" Background="Transparent"/>
-                                        <TextBox Grid.Column="1" Text="{Binding ArrivalTime, StringFormat='{}{0:g}'}" VerticalAlignment="Center" IsReadOnly="True" BorderThickness="0" Background="Transparent"/>
-                                        <TextBox Grid.Column="2" Text="{Binding BusId}" VerticalAlignment="Center" IsReadOnly="True" BorderThickness="0" Background="Transparent"/>
+                                <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="10">
+                                    <Grid ColumnDefinitions="160,160,100,*">
+                                        <TextBlock Grid.Column="0" Text="{Binding DepartureTime, StringFormat='{}{0:g}'}" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource DarkTextBrush}"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding ArrivalTime, StringFormat='{}{0:g}'}" VerticalAlignment="Center" Foreground="{StaticResource LightTextBrush}"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding BusId}" VerticalAlignment="Center" Foreground="{StaticResource PrimaryBlueBrush}"/>
+                                        
                                         <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="5" HorizontalAlignment="Right">
-                                            <Button Content="✏️ Edit" Padding="5" Click="OnEditSchedule"/>
-                                            <Button Content="🗑️ Delete" Padding="5" Click="OnDeleteSchedule"/>
+                                            <Button Classes="Ghost" Content="✏️" Padding="8" Click="OnEditSchedule" ToolTip.Tip="Edit"/>
+                                            <Button Classes="Ghost" Content="🗑️" Padding="8" Click="OnDeleteSchedule" Foreground="Red" ToolTip.Tip="Delete"/>
                                         </StackPanel>
                                     </Grid>
                                 </Border>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
-                </StackPanel>
+                </Grid>
             </Border>
 
-            <Border Grid.Column="1" BorderBrush="#BDC3C7" BorderThickness="1" CornerRadius="8" Padding="15" 
-                    IsVisible="{Binding IsEditMode}" Width="350">
+            <!-- Edit Form Card -->
+            <Border Grid.Column="1" Classes="Card" 
+                    IsVisible="{Binding IsEditMode}" Width="400">
+                <ScrollViewer>
                 <StackPanel Spacing="15">
-                    <TextBlock Text="New Schedule" FontSize="18" FontWeight="Bold"/>
+                    <TextBlock Text="New Schedule" FontSize="18" FontWeight="Bold" Foreground="{StaticResource DarkTextBrush}"/>
                     
-                    <ComboBox ItemsSource="{Binding Routes}" SelectedItem="{Binding SelectedRoute}" 
-                              PlaceholderText="Select Route" SelectionChanged="OnRouteChanged">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate>
-                                <TextBlock>
-                                    <Run Text="{Binding Origin}"/> → <Run Text="{Binding Destination}"/>
-                                </TextBlock>
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
-                    <ComboBox ItemsSource="{Binding RouteSegments}" SelectedItem="{Binding SelectedRouteSegment}" 
-                              PlaceholderText="Select Route Segment">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding Id}"/>
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
-                    <ComboBox ItemsSource="{Binding Buses}" SelectedItem="{Binding SelectedBus}" 
-                              PlaceholderText="Select Bus">
-                        <ComboBox.ItemTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding PlateNumber}"/>
-                            </DataTemplate>
-                        </ComboBox.ItemTemplate>
-                    </ComboBox>
-                    <TextBlock Text="Departure Date &amp; Time" FontWeight="SemiBold"/>
-                    <DatePicker SelectedDate="{Binding DepartureDate}"/>
-                    <TimePicker SelectedTime="{Binding DepartureTime}"/>
-                    <TextBlock Text="Arrival Date &amp; Time (Optional)" FontWeight="SemiBold" Margin="0,10,0,0"/>
-                    <DatePicker SelectedDate="{Binding ArrivalDate}"/>
-                    <TimePicker SelectedTime="{Binding ArrivalTime}"/>
+                    <StackPanel Spacing="5">
+                        <TextBlock Text="Route" Foreground="{StaticResource LightTextBrush}" FontSize="12"/>
+                        <ComboBox ItemsSource="{Binding Routes}" SelectedItem="{Binding SelectedRoute}" 
+                                  HorizontalAlignment="Stretch" PlaceholderText="Select Route" SelectionChanged="OnRouteChanged">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock>
+                                        <Run Text="{Binding Origin}"/> → <Run Text="{Binding Destination}"/>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
+
+                    <StackPanel Spacing="5">
+                        <TextBlock Text="Route Segment (Optional)" Foreground="{StaticResource LightTextBrush}" FontSize="12"/>
+                         <ComboBox ItemsSource="{Binding RouteSegments}" SelectedItem="{Binding SelectedRouteSegment}" 
+                                  HorizontalAlignment="Stretch" PlaceholderText="Select Route Segment">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Id}"/>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
+
+                    <StackPanel Spacing="5">
+                        <TextBlock Text="Bus" Foreground="{StaticResource LightTextBrush}" FontSize="12"/>
+                        <ComboBox ItemsSource="{Binding Buses}" SelectedItem="{Binding SelectedBus}" 
+                                  HorizontalAlignment="Stretch" PlaceholderText="Select Bus">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding PlateNumber}"/>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
+
+                    <StackPanel Spacing="5">
+                         <TextBlock Text="Departure" Foreground="{StaticResource LightTextBrush}" FontSize="12"/>
+                         <DatePicker SelectedDate="{Binding DepartureDate}" HorizontalAlignment="Stretch"/>
+                         <TimePicker SelectedTime="{Binding DepartureTime}" HorizontalAlignment="Stretch"/>
+                    </StackPanel>
+
+                     <StackPanel Spacing="5">
+                         <TextBlock Text="Arrival (Optional)" Foreground="{StaticResource LightTextBrush}" FontSize="12"/>
+                         <DatePicker SelectedDate="{Binding ArrivalDate}" HorizontalAlignment="Stretch"/>
+                         <TimePicker SelectedTime="{Binding ArrivalTime}" HorizontalAlignment="Stretch"/>
+                    </StackPanel>
                     
-                    <TextBlock Text="{Binding ErrorMessage}" Foreground="Red" TextWrapping="Wrap"/>
+                    <TextBlock Text="{Binding ErrorMessage}" Foreground="#E74C3C" TextWrapping="Wrap" FontSize="12"/>
                     
                     <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
-                        <Button Content="Save" Command="{Binding SaveScheduleCommand}"/>
-                        <Button Content="Cancel" Command="{Binding CancelEditCommand}"/>
+                        <Button Classes="Ghost" Content="Cancel" Command="{Binding CancelEditCommand}"/>
+                        <Button Content="Save Schedule" Command="{Binding SaveScheduleCommand}"/>
                     </StackPanel>
                 </StackPanel>
+                </ScrollViewer>
             </Border>
         </Grid>
     </Grid>

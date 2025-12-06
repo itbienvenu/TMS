@@ -74,3 +74,4 @@
 /home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/companies/obj/Debug/net8.0/CompanyDashboard.csproj.CopyComplete
 /home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/companies/obj/Debug/net8.0/CompanyDashboard.genruntimeconfig.cache
 /home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/companies/obj/Debug/net8.0/ref/CompanyDashboard.dll
+/home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/companies/bin/Debug/net8.0/Avalonia.Controls.DataGrid.dll

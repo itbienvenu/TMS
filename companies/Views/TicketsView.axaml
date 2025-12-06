@@ -7,44 +7,74 @@
              x:Class="CompanyDashboard.Views.TicketsView"
              x:DataType="vm:TicketsViewModel">
 
-    <ScrollViewer>
-        <StackPanel Spacing="20" Margin="20">
+    <ScrollViewer Padding="{StaticResource PageMargin}">
+        <StackPanel Spacing="20">
             <Grid>
-                <TextBlock Text="Ticket Management" FontSize="24" FontWeight="Bold"/>
-                <Button Content="🔄 Refresh" Command="{Binding RefreshCommand}" HorizontalAlignment="Right"/>
+                <TextBlock Classes="Header" Text="Ticket Management"/>
+                <Button Classes="Outline" Content="🔄 Refresh" Command="{Binding RefreshCommand}" HorizontalAlignment="Right"/>
             </Grid>
 
-            <!-- QR Code Verification -->
-            <Border BorderBrush="#BDC3C7" BorderThickness="1" CornerRadius="8" Padding="15">
-                <StackPanel Spacing="10">
-                    <TextBlock Text="Verify QR Code" FontSize="18" FontWeight="Bold"/>
+            <!-- QR Code Verification Card -->
+            <Border Classes="Card">
+                <StackPanel Spacing="15">
+                    <TextBlock Text="Verify QR Code" FontSize="18" FontWeight="Bold" Foreground="{StaticResource DarkTextBrush}"/>
                     <Grid ColumnDefinitions="*,Auto">
                         <TextBox Grid.Column="0" Text="{Binding QrCodeInput}" Watermark="Enter QR code token" Margin="0,0,10,0"/>
                         <Button Grid.Column="1" Content="Verify" Command="{Binding VerifyQrCodeCommand}"/>
                     </Grid>
-                    <TextBox Text="{Binding VerificationResult}" Foreground="Green" FontWeight="Bold" IsReadOnly="True" BorderThickness="0" Background="Transparent"/>
-                    <TextBox Text="{Binding ErrorMessage}" Foreground="Red" TextWrapping="Wrap" IsReadOnly="True" BorderThickness="0" Background="Transparent"/>
+                    
+                    <!-- Result Display -->
+                    <Border Background="#E8F5E9" BorderBrush="#C8E6C9" BorderThickness="1" CornerRadius="4" Padding="10" IsVisible="{Binding !!VerificationResult}">
+                        <TextBlock Text="{Binding VerificationResult}" Foreground="#2E7D32" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                    </Border>
+                    
+                    <Border Background="#FFEBEE" BorderBrush="#FFCDD2" BorderThickness="1" CornerRadius="4" Padding="10" IsVisible="{Binding !!ErrorMessage}">
+                         <TextBlock Text="{Binding ErrorMessage}" Foreground="#C62828" TextWrapping="Wrap"/>
+                    </Border>
                 </StackPanel>
             </Border>
 
-            <!-- Tickets List -->
-            <Border BorderBrush="#BDC3C7" BorderThickness="1" CornerRadius="8" Padding="15">
-                <StackPanel Spacing="10">
-                    <TextBlock Text="All Tickets" FontSize="18" FontWeight="Bold"/>
+            <!-- Tickets List Card -->
+            <Border Classes="Card">
+                <StackPanel Spacing="15">
+                     <Grid>
+                        <TextBlock Text="Ticket Transactions" FontSize="18" FontWeight="Bold" Foreground="{StaticResource DarkTextBrush}"/>
+                        <Button Classes="Ghost" Content="Export CSV" HorizontalAlignment="Right"/>
+                     </Grid>
                     
-                    <ListBox ItemsSource="{Binding Tickets}" SelectedItem="{Binding SelectedTicket}">
+                    <!-- Table Header -->
+                     <Grid ColumnDefinitions="150,*,100,150,150" Margin="15,0,15,5">
+                        <TextBlock Grid.Column="0" Text="TICKET ID" FontWeight="SemiBold" Foreground="{StaticResource LightTextBrush}" FontSize="12"/>
+                        <TextBlock Grid.Column="1" Text="PASSENGER" FontWeight="SemiBold" Foreground="{StaticResource LightTextBrush}" FontSize="12"/>
+                        <TextBlock Grid.Column="2" Text="STATUS" FontWeight="SemiBold" Foreground="{StaticResource LightTextBrush}" FontSize="12"/>
+                        <TextBlock Grid.Column="3" Text="PURCHASED" FontWeight="SemiBold" Foreground="{StaticResource LightTextBrush}" FontSize="12"/>
+                        <TextBlock Grid.Column="4" Text="ACTIONS" FontWeight="SemiBold" Foreground="{StaticResource LightTextBrush}" FontSize="12" HorizontalAlignment="Right"/>
+                    </Grid>
+                    <Separator Background="{StaticResource BorderBrush}" Margin="0,-5,0,5"/>
+
+                    <ListBox ItemsSource="{Binding Tickets}" SelectedItem="{Binding SelectedTicket}" Background="Transparent" BorderThickness="0">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <Border BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Padding="10">
-                                    <Grid ColumnDefinitions="150,*,100,150,*">
-                                        <TextBox Grid.Column="0" Text="{Binding Id}" VerticalAlignment="Center" IsReadOnly="True" BorderThickness="0" Background="Transparent"/>
-                                        <TextBox Grid.Column="1" Text="{Binding FullName}" VerticalAlignment="Center" IsReadOnly="True" BorderThickness="0" Background="Transparent"/>
-                                        <TextBox Grid.Column="2" Text="{Binding Status}" VerticalAlignment="Center" IsReadOnly="True" BorderThickness="0" Background="Transparent"/>
-                                        <TextBox Grid.Column="3" Text="{Binding CreatedAt, StringFormat='{}{0:g}'}" VerticalAlignment="Center" IsReadOnly="True" BorderThickness="0" Background="Transparent"/>
+                                <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="10">
+                                    <Grid ColumnDefinitions="150,*,100,150,150">
+                                        <TextBlock Grid.Column="0" Text="{Binding Id}" VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource LightTextBrush}"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding FullName}" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource DarkTextBrush}"/>
+                                        
+                                        <!-- Status Badge -->
+                                        <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                            <Border Background="#E3F2FD" CornerRadius="4" Padding="8,2" HorizontalAlignment="Left" IsVisible="{Binding Status, Converter={StaticResource StringEqualsConverter}, ConverterParameter='Active'}">
+                                                <TextBlock Text="{Binding Status}" FontSize="11" Foreground="{StaticResource PrimaryBlueBrush}" FontWeight="Bold"/>
+                                            </Border>
+                                             <!-- Fallback for other statuses if needed, or simple text -->
+                                             <TextBlock Text="{Binding Status}" FontSize="11" Foreground="{StaticResource DarkTextBrush}" IsVisible="{Binding Status, Converter={StaticResource StringNotEqualsConverter}, ConverterParameter='Active'}"/>
+                                        </StackPanel>
+
+                                        <TextBlock Grid.Column="3" Text="{Binding CreatedAt, StringFormat='{}{0:g}'}" VerticalAlignment="Center" Foreground="{StaticResource LightTextBrush}"/>
+                                        
                                         <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="5" HorizontalAlignment="Right">
-                                            <Button Content="✅ Paid" Padding="5" Click="OnMarkPaid"/>
-                                            <Button Content="❌ Cancel" Padding="5" Click="OnMarkCancelled"/>
-                                            <Button Content="🗑️ Delete" Padding="5" Click="OnDelete"/>
+                                            <Button Classes="Outline" Content="✅" Padding="8,4" Click="OnMarkPaid" ToolTip.Tip="Mark Paid"/>
+                                            <Button Classes="Outline" Content="❌" Padding="8,4" Click="OnMarkCancelled" ToolTip.Tip="Cancel"/>
+                                            <Button Classes="Ghost" Content="🗑️" Padding="8" Click="OnDelete" Foreground="Red" ToolTip.Tip="Delete"/>
                                         </StackPanel>
                                     </Grid>
                                 </Border>

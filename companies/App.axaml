@@ -12,9 +12,95 @@
 
     <Application.Resources>
         <converters:NullToTextConverter x:Key="NullToTextConverter"/>
+        
+        <!-- Modern Color Palette -->
+        <Color x:Key="PrimaryBlueColor">#0056B3</Color> <!-- Professional Blue -->
+        <Color x:Key="SecondaryBlueColor">#E6F0F9</Color> <!-- Light Blue Background -->
+        <Color x:Key="DarkTextColor">#212529</Color> <!-- Nearly Black -->
+        <Color x:Key="LightTextColor">#6C757D</Color> <!-- Gray Text -->
+        <Color x:Key="WhiteColor">#FFFFFF</Color>
+        <Color x:Key="BorderColor">#DEE2E6</Color>
+        <Color x:Key="DashboardBgColor">#F8F9FA</Color>
+        
+        <SolidColorBrush x:Key="PrimaryBlueBrush" Color="{StaticResource PrimaryBlueColor}"/>
+        <SolidColorBrush x:Key="SecondaryBlueBrush" Color="{StaticResource SecondaryBlueColor}"/>
+        <SolidColorBrush x:Key="DarkTextBrush" Color="{StaticResource DarkTextColor}"/>
+        <SolidColorBrush x:Key="LightTextBrush" Color="{StaticResource LightTextColor}"/>
+        <SolidColorBrush x:Key="WhiteBrush" Color="{StaticResource WhiteColor}"/>
+        <SolidColorBrush x:Key="BorderBrush" Color="{StaticResource BorderColor}"/>
+        <SolidColorBrush x:Key="DashboardBgBrush" Color="{StaticResource DashboardBgColor}"/>
+
+        <!-- Common Styles -->
+        <Thickness x:Key="PageMargin">24</Thickness>
+        <CornerRadius x:Key="ControlCornerRadius">6</CornerRadius>
     </Application.Resources>
   
     <Application.Styles>
         <FluentTheme />
+        <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml"/>
+        
+        <!-- Button Standard Style -->
+        <Style Selector="Button">
+            <Setter Property="Background" Value="{StaticResource PrimaryBlueBrush}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="CornerRadius" Value="{StaticResource ControlCornerRadius}"/>
+            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+        </Style>
+        <Style Selector="Button:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#004494"/> <!-- Darker Blue -->
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+
+        <!-- Outline Button Style (Class="Outline") -->
+        <Style Selector="Button.Outline">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="{StaticResource PrimaryBlueBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="{StaticResource PrimaryBlueBrush}"/>
+        </Style>
+        <Style Selector="Button.Outline:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource SecondaryBlueBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource PrimaryBlueBrush}"/>
+        </Style>
+
+        <!-- Ghost Button Style (Class="Ghost") -->
+        <Style Selector="Button.Ghost">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="{StaticResource DarkTextBrush}"/>
+        </Style>
+         <Style Selector="Button.Ghost:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#F0F0F0"/>
+            <Setter Property="Foreground" Value="{StaticResource PrimaryBlueBrush}"/>
+        </Style>
+        
+        <!-- TextBox Style -->
+        <Style Selector="TextBox">
+            <Setter Property="CornerRadius" Value="{StaticResource ControlCornerRadius}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="Padding" Value="10,8"/>
+        </Style>
+        <Style Selector="TextBox:focus /template/ Border#PART_BorderElement">
+            <Setter Property="BorderBrush" Value="{StaticResource PrimaryBlueBrush}"/>
+        </Style>
+
+        <!-- Card Style (Border) -->
+        <Style Selector="Border.Card">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="BoxShadow" Value="0 2 8 0 #1A000000"/> <!-- Subtle Shadow -->
+            <Setter Property="Padding" Value="20"/>
+        </Style>
+        
+        <!-- DataGrid/List Headers -->
+        <Style Selector="TextBlock.Header">
+            <Setter Property="FontSize" Value="22"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="{StaticResource DarkTextBrush}"/>
+            <Setter Property="Margin" Value="0,0,0,20"/>
+        </Style>
+        
     </Application.Styles>
 </Application>

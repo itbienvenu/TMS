@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "aaS+DyTlS0Vv9Nf0jLxRgW+cV+pUalR3SF8MdPi5Nirkes+kG4o7W9ZN6RXhPtw41gBthuXw1oGg/VOJaTWtiA==",
+  "dgSpecHash": "3YWRIVCtKnYCB/XnAlN3AiF3IqDGj1mksDOVsNHhl7dDVYEhXI7joRELtlyxFC1kDFMUlh12PWpA/mk3Wh8SZQ==",
   "success": true,
   "projectFilePath": "/home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/companies/CompanyDashboard.csproj",
   "expectedPackageFiles": [
@@ -8,6 +8,7 @@
     "/home/itbienvenu/.nuget/packages/avalonia.angle.windows.natives/2.1.25547.20250602/avalonia.angle.windows.natives.2.1.25547.20250602.nupkg.sha512",
     "/home/itbienvenu/.nuget/packages/avalonia.buildservices/11.3.2/avalonia.buildservices.11.3.2.nupkg.sha512",
     "/home/itbienvenu/.nuget/packages/avalonia.controls.colorpicker/11.3.9/avalonia.controls.colorpicker.11.3.9.nupkg.sha512",
+    "/home/itbienvenu/.nuget/packages/avalonia.controls.datagrid/11.3.9/avalonia.controls.datagrid.11.3.9.nupkg.sha512",
     "/home/itbienvenu/.nuget/packages/avalonia.desktop/11.3.9/avalonia.desktop.11.3.9.nupkg.sha512",
     "/home/itbienvenu/.nuget/packages/avalonia.diagnostics/11.3.9/avalonia.diagnostics.11.3.9.nupkg.sha512",
     "/home/itbienvenu/.nuget/packages/avalonia.fonts.inter/11.3.9/avalonia.fonts.inter.11.3.9.nupkg.sha512",

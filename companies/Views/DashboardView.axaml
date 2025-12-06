@@ -7,58 +7,94 @@
              x:Class="CompanyDashboard.Views.DashboardView"
              x:DataType="vm:DashboardViewModel">
 
-    <ScrollViewer>
-        <StackPanel Spacing="20" Margin="20">
-            <TextBlock Text="Dashboard Overview" FontSize="24" FontWeight="Bold" Margin="0,0,0,20"/>
+    <ScrollViewer Padding="{StaticResource PageMargin}">
+        <StackPanel Spacing="20">
+            <Grid>
+                <TextBlock Classes="Header" Text="Dashboard Overview"/>
+                <Button Classes="Outline" Content="🔄 Refresh" Command="{Binding RefreshCommand}" HorizontalAlignment="Right"/>
+            </Grid>
 
             <!-- Statistics Cards -->
             <Grid ColumnDefinitions="*,*,*,*" RowDefinitions="Auto">
-                <Border Grid.Column="0" Background="#3498DB" CornerRadius="8" Padding="20" Margin="5">
-                    <StackPanel>
-                        <TextBlock Text="Buses" Foreground="White" FontSize="14"/>
-                        <TextBlock Text="{Binding TotalBuses}" Foreground="White" FontSize="32" FontWeight="Bold"/>
+                <!-- Buses Card -->
+                <Border Grid.Column="0" Classes="Card" Margin="0,0,10,0">
+                    <StackPanel Spacing="5">
+                         <StackPanel Orientation="Horizontal" Spacing="10">
+                            <TextBlock Text="🚌" FontSize="20"/>
+                            <TextBlock Text="Buses" Foreground="{StaticResource LightTextBrush}" FontSize="14" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <!-- Ensure text is dark -->
+                        <TextBlock Text="{Binding TotalBuses}" Foreground="{StaticResource DarkTextBrush}" FontSize="32" FontWeight="Bold"/>
                     </StackPanel>
                 </Border>
                 
-                <Border Grid.Column="1" Background="#2ECC71" CornerRadius="8" Padding="20" Margin="5">
-                    <StackPanel>
-                        <TextBlock Text="Routes" Foreground="White" FontSize="14"/>
-                        <TextBlock Text="{Binding TotalRoutes}" Foreground="White" FontSize="32" FontWeight="Bold"/>
+                <!-- Routes Card -->
+                <Border Grid.Column="1" Classes="Card" Margin="0,0,10,0">
+                    <StackPanel Spacing="5">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <TextBlock Text="🛣️" FontSize="20"/>
+                            <TextBlock Text="Routes" Foreground="{StaticResource LightTextBrush}" FontSize="14" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <TextBlock Text="{Binding TotalRoutes}" Foreground="{StaticResource DarkTextBrush}" FontSize="32" FontWeight="Bold"/>
                     </StackPanel>
                 </Border>
                 
-                <Border Grid.Column="2" Background="#E67E22" CornerRadius="8" Padding="20" Margin="5">
-                    <StackPanel>
-                        <TextBlock Text="Tickets" Foreground="White" FontSize="14"/>
-                        <TextBlock Text="{Binding TotalTickets}" Foreground="White" FontSize="32" FontWeight="Bold"/>
+                <!-- Tickets Card -->
+                <Border Grid.Column="2" Classes="Card" Margin="0,0,10,0">
+                    <StackPanel Spacing="5">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <TextBlock Text="🎫" FontSize="20"/>
+                            <TextBlock Text="Tickets" Foreground="{StaticResource LightTextBrush}" FontSize="14" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <!-- Using Primary Blue for Tickets count for emphasis, but readable -->
+                        <TextBlock Text="{Binding TotalTickets}" Foreground="{StaticResource PrimaryBlueBrush}" FontSize="32" FontWeight="Bold"/>
                     </StackPanel>
                 </Border>
                 
-                <Border Grid.Column="3" Background="#9B59B6" CornerRadius="8" Padding="20" Margin="5">
-                    <StackPanel>
-                        <TextBlock Text="Schedules" Foreground="White" FontSize="14"/>
-                        <TextBlock Text="{Binding TotalSchedules}" Foreground="White" FontSize="32" FontWeight="Bold"/>
+                <!-- Schedules Card -->
+                <Border Grid.Column="3" Classes="Card">
+                    <StackPanel Spacing="5">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <TextBlock Text="📅" FontSize="20"/>
+                            <TextBlock Text="Schedules" Foreground="{StaticResource LightTextBrush}" FontSize="14" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <TextBlock Text="{Binding TotalSchedules}" Foreground="{StaticResource DarkTextBrush}" FontSize="32" FontWeight="Bold"/>
                     </StackPanel>
                 </Border>
             </Grid>
 
             <!-- Recent Tickets -->
-            <Border BorderBrush="#BDC3C7" BorderThickness="1" CornerRadius="8" Padding="15">
-                <StackPanel Spacing="10">
-                    <Grid>
-                        <TextBlock Text="Recent Tickets" FontSize="18" FontWeight="Bold"/>
-                        <Button Content="Refresh" Command="{Binding RefreshCommand}" HorizontalAlignment="Right"/>
-                    </Grid>
+            <Border Classes="Card">
+                <StackPanel Spacing="15">
+                     <Grid>
+                        <TextBlock Text="Recent Activity" FontSize="18" FontWeight="Bold" Foreground="{StaticResource DarkTextBrush}"/>
+                        <Button Classes="Ghost" Content="See All" HorizontalAlignment="Right" FontSize="12"/>
+                     </Grid>
                     
+                    <!-- Table Header -->
+                    <Grid ColumnDefinitions="120,*,100,150" Margin="15,0,15,5">
+                        <TextBlock Grid.Column="0" Text="ID" FontWeight="SemiBold" Foreground="{StaticResource LightTextBrush}" FontSize="12"/>
+                        <TextBlock Grid.Column="1" Text="CUSTOMER" FontWeight="SemiBold" Foreground="{StaticResource LightTextBrush}" FontSize="12"/>
+                        <TextBlock Grid.Column="2" Text="STATUS" FontWeight="SemiBold" Foreground="{StaticResource LightTextBrush}" FontSize="12"/>
+                        <TextBlock Grid.Column="3" Text="DATE" FontWeight="SemiBold" Foreground="{StaticResource LightTextBrush}" FontSize="12" HorizontalAlignment="Right"/>
+                    </Grid>
+                    <Separator Background="{StaticResource BorderBrush}" Margin="0,-5,0,5"/>
+
                     <ItemsControl ItemsSource="{Binding RecentTickets}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Padding="10">
-                                    <Grid ColumnDefinitions="150,*,100,150">
-                                        <TextBlock Grid.Column="0" Text="{Binding Id}" FontSize="12"/>
-                                        <TextBlock Grid.Column="1" Text="{Binding FullName}" FontSize="12"/>
-                                        <TextBlock Grid.Column="2" Text="{Binding Status}" FontSize="12"/>
-                                        <TextBlock Grid.Column="3" Text="{Binding CreatedAt, StringFormat='{}{0:g}'}" FontSize="12"/>
+                                <!-- Table Row -->
+                                <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="10,12">
+                                    <Grid ColumnDefinitions="120,*,100,150">
+                                        <TextBlock Grid.Column="0" Text="{Binding Id}" FontSize="13" Foreground="{StaticResource DarkTextBrush}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding FullName}" FontSize="13" FontWeight="Medium" Foreground="{StaticResource DarkTextBrush}" VerticalAlignment="Center"/>
+                                        
+                                        <!-- Status Badge -->
+                                        <Border Grid.Column="2" Background="{StaticResource SecondaryBlueBrush}" CornerRadius="12" Padding="10,4" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Status}" FontSize="11" Foreground="{StaticResource PrimaryBlueBrush}" FontWeight="Bold"/>
+                                        </Border>
+                                        
+                                        <TextBlock Grid.Column="3" Text="{Binding CreatedAt, StringFormat='{}{0:g}'}" FontSize="13" Foreground="{StaticResource LightTextBrush}" VerticalAlignment="Center" HorizontalAlignment="Right"/>
                                     </Grid>
                                 </Border>
                             </DataTemplate>
@@ -68,12 +104,20 @@
             </Border>
 
             <!-- User Info -->
-            <Border BorderBrush="#BDC3C7" BorderThickness="1" CornerRadius="8" Padding="15">
-                <StackPanel>
-                    <TextBlock Text="User Information" FontSize="18" FontWeight="Bold" Margin="0,0,0,10"/>
-                    <TextBlock Text="{Binding CurrentUser.FullName, StringFormat='Name: {0}'}" Margin="0,5"/>
-                    <TextBlock Text="{Binding CurrentUser.Email, StringFormat='Email: {0}'}" Margin="0,5"/>
-                    <TextBlock Text="{Binding CurrentUser.Role, StringFormat='Role: {0}'}" Margin="0,5"/>
+            <Border Classes="Card">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="User Profile" FontSize="18" FontWeight="Bold" Foreground="{StaticResource DarkTextBrush}" Margin="0,0,0,10"/>
+                    
+                    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto">
+                         <TextBlock Grid.Row="0" Grid.Column="0" Text="Name:" FontWeight="SemiBold" Width="80" Margin="0,5"/>
+                         <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding CurrentUser.FullName}" Foreground="{StaticResource LightTextBrush}" Margin="0,5"/>
+                         
+                         <TextBlock Grid.Row="1" Grid.Column="0" Text="Email:" FontWeight="SemiBold" Width="80" Margin="0,5"/>
+                         <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding CurrentUser.Email}" Foreground="{StaticResource LightTextBrush}" Margin="0,5"/>
+                         
+                         <TextBlock Grid.Row="2" Grid.Column="0" Text="Role:" FontWeight="SemiBold" Width="80" Margin="0,5"/>
+                         <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding CurrentUser.Role}" Foreground="{StaticResource PrimaryBlueBrush}" FontWeight="Bold" Margin="0,5"/>
+                    </Grid>
                 </StackPanel>
             </Border>
         </StackPanel>
