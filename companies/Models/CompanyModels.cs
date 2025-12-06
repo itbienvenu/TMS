@@ -322,3 +322,70 @@ public class UserInfo
     public string UserType { get; set; } = string.Empty;
 }
 
+// Role & Permission Models
+public class Permission
+{
+    [JsonPropertyName("id")]
+    public string Id { get; set; } = string.Empty;
+
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+}
+
+public class Role
+{
+    [JsonPropertyName("id")]
+    public string Id { get; set; } = string.Empty;
+
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+
+    [JsonPropertyName("permissions")]
+    public List<Permission> Permissions { get; set; } = new();
+}
+
+public class RoleCreate
+{
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+}
+
+public class PermissionCreate
+{
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+}
+
+public class RolePermissionAssign
+{
+    [JsonPropertyName("role_id")]
+    public string RoleId { get; set; } = string.Empty;
+
+    [JsonPropertyName("permission_id")]
+    public string PermissionId { get; set; } = string.Empty;
+}
+
+public class UserCreate
+{
+    [JsonPropertyName("full_name")]
+    public string FullName { get; set; } = string.Empty;
+
+    [JsonPropertyName("email")]
+    public string Email { get; set; } = string.Empty;
+
+    [JsonPropertyName("login_email")]
+    public string? LoginEmail { get; set; }
+
+    [JsonPropertyName("phone_number")]
+    public string? PhoneNumber { get; set; }
+
+    [JsonPropertyName("password")]
+    public string Password { get; set; } = string.Empty;
+
+    [JsonPropertyName("role_name")]
+    public string RoleName { get; set; } = string.Empty;
+
+    [JsonPropertyName("company_id")]
+    public string? CompanyId { get; set; }
+}
+

@@ -50,7 +50,7 @@ async def get_all_roles(db: Session = Depends(get_db), current_user: CompanyUser
     Get all roles for the current user's company.
     Super admins cannot access this - they can only manage companies.
     """
-    return db.query(Role).filter(Role.company_id == current_user.company_id).all()
+    return db.query(Role).options(joinedload(Role.permissions)).filter(Role.company_id == current_user.company_id).all()
 
 
 # Deleting the role

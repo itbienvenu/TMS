@@ -15,6 +15,7 @@ public partial class SchedulesViewModel : ViewModelBase
     private readonly BusService _busService;
     private readonly RouteSegmentService _routeSegmentService;
     private readonly RouteService _routeService;
+    private readonly StationService _stationService;
 
     [ObservableProperty]
     private ObservableCollection<Schedule> _schedules = new();
@@ -83,6 +84,7 @@ public partial class SchedulesViewModel : ViewModelBase
         _busService = new BusService(token);
         _routeSegmentService = new RouteSegmentService(token);
         _routeService = new RouteService(token);
+        _stationService = new StationService(token);
         LoadDataAsync().ConfigureAwait(false);
     }
 
@@ -263,6 +265,71 @@ public partial class SchedulesViewModel : ViewModelBase
         IsEditMode = false;
         SelectedSchedule = null;
         ErrorMessage = string.Empty;
+    }
+
+    [RelayCommand]
+    private async Task CreateRouteSegmentAsync()
+    {
+        if (SelectedRoute == null)
+        {
+            ErrorMessage = "Please select a route first.";
+            return;
+        }
+
+        IsLoading = true;
+        try
+        {
+            // Get full route details to get station IDs if needed
+            // Assuming Route object already has them or we fetch them. 
+            // The Route model in the list might be partial. Let's assume we can use the Route object.
+            // Actually, Route model has Origin and Destination names, but we need IDs for the segment.
+            // Wait, the Route model in `CompanyModels.cs` line 56 has "Id", "Origin", "Destination" strings (names?), 
+            // but the `RouteCreate` uses `OriginId`. 
+            // The `Route` response usually includes expanded fields or just IDs? 
+            // Looking at `RoutesScheme.py` (not visible but standard practice), `origin` and `destination` are strings (names).
+            // We need Station IDs to create a segment. `Route` model doesn't seem to have `OriginStationId` and `DestinationStationId`.
+            // Check `RoutesScheme.py`: `RouteResponse` usually has IDs or nested objects.
+            // If I only have names, I can't easily create a segment without fetching stations or route details.
+            
+            // Allow me to cheat slightly: I will fetch the route by ID again, hoping it returns IDs? 
+            // Or I will iterate existing Stations to find the matching IDs.
+            
+            var stations = await _stationService.GetAllStationsAsync();
+            var originParams = SelectedRoute.Origin; 
+            var destParams = SelectedRoute.Destination;
+            
+            var originStation = stations.FirstOrDefault(s => s.Name == originParams || s.Id == originParams); // flexible
+            var destStation = stations.FirstOrDefault(s => s.Name == destParams || s.Id == destParams);
+
+            if (originStation == null || destStation == null)
+            {
+               ErrorMessage = "Could not identify station IDs for this route to create a segment.";
+               return;
+            }
+
+            var newSegment = new RouteSegmentCreate
+            {
+                RouteId = SelectedRoute.Id,
+                StartStationId = originStation.Id,
+                EndStationId = destStation.Id,
+                Price = SelectedRoute.Price,
+                StopOrder = 1
+            };
+
+            await _routeSegmentService.CreateSegmentAsync(newSegment);
+            
+            // Refresh segments
+            await RouteChangedAsync();
+            ErrorMessage = "Default segment created.";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error creating segment: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
     }
 
     [RelayCommand]

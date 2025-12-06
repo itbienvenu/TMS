@@ -76,6 +76,13 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private void NavigateToTeam()
+    {
+        CurrentViewModel = new TeamViewModel(); // Re-create to ensure fresh data
+        CurrentPageTitle = "Team";
+    }
+
+    [RelayCommand]
     private void Logout()
     {
         TokenStorage.Clear();

@@ -105,6 +105,22 @@ async def get_all_companies(db: Session = Depends(get_db)):
     companies = db.query(Company).all()
     return companies
 
+
+# get company members - MOVED UP to avoid conflict with /{company_id}
+@router.get("/users", response_model=List[CompanyUserResponse], dependencies=[Depends(get_current_company_user)])
+async def get_company_users(
+    db: Session = Depends(get_db),
+    current_user: CompanyUser = Depends(get_current_company_user)
+):
+    """
+    Returns a list of company users belonging to the current user's company.
+    Only company admins can access this.
+    Super admins cannot access company users - they can only manage companies.
+    """
+    company_users = db.query(CompanyUser).filter(CompanyUser.company_id == current_user.company_id).all()
+    return company_users
+
+
 @router.get(
     "/{company_id}",
     response_model=CompanyResponse,
@@ -133,22 +149,6 @@ async def delete_company(company_id: str, db: Session = Depends(get_db)):
     db.commit()
 
     return {"message":"Company deleted well"}
-
-
-# get company members
-@router.get("/users", response_model=List[CompanyUserResponse], dependencies=[Depends(get_current_company_user)])
-async def get_company_users(
-    db: Session = Depends(get_db),
-    current_user: CompanyUser = Depends(get_current_company_user)
-):
-    """
-    Returns a list of company users belonging to the current user's company.
-    Only company admins can access this.
-    Super admins cannot access company users - they can only manage companies.
-    """
-    company_users = db.query(CompanyUser).filter(CompanyUser.company_id == current_user.company_id).all()
-    return company_users
-
 
 
 @router.post('/company-user', dependencies=[Depends(get_current_company_user)])

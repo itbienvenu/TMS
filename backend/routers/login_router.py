@@ -56,6 +56,7 @@ async def company_login_start(
     db.commit()
 
     # Send OTP via Gmail SMTP to the company user's real email
+    print(f"\n[DEBUG] Generated OTP for {payload.login_email}: {code} (Send to: {company_user.email})\n")
     if company_user.email:
         send_email(
             to_email=company_user.email,

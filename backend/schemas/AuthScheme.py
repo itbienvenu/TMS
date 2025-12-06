@@ -9,6 +9,10 @@ class RoleCreate(BaseModel):
 class RoleOut(BaseModel):
     id: str
     name: str
+    permissions: List["PermissionOut"] = []
+
+    class Config:
+        from_attributes = True
 
 # Permissions
 

@@ -19,7 +19,7 @@
         
         <!-- Sidebar Navigation -->
         <Border Grid.Column="0" Background="White" BoxShadow="2 0 8 0 #10000000">
-            <Grid RowDefinitions="Auto,*">
+            <Grid RowDefinitions="Auto,*,Auto">
                 <!-- Branding -->
                 <Border Grid.Row="0" Margin="0,30,0,30" Padding="24,0">
                     <StackPanel Orientation="Horizontal" Spacing="10">
@@ -83,9 +83,18 @@
                                 HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="12,10"
                                 CornerRadius="8">
                              <StackPanel Orientation="Horizontal" Spacing="12">
-                                <TextBlock Text="🎫"/>
-                                <TextBlock Text="Tickets" FontWeight="Medium"/>
-                            </StackPanel>
+                                 <TextBlock Text="🎫"/>
+                                 <TextBlock Text="Tickets" FontWeight="Medium"/>
+                             </StackPanel>
+                        </Button>
+                        
+                        <Button Classes="Ghost" Command="{Binding NavigateToTeamCommand}" 
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="12,10"
+                                CornerRadius="8">
+                             <StackPanel Orientation="Horizontal" Spacing="12">
+                                 <TextBlock Text="👤"/>
+                                 <TextBlock Text="Team" FontWeight="Medium"/>
+                             </StackPanel>
                         </Button>
                     </StackPanel>
                 </ScrollViewer>

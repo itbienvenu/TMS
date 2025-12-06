@@ -24,8 +24,9 @@
                             <DataTemplate>
                                 <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="10">
                                     <Grid ColumnDefinitions="*,*,Auto">
-                                        <TextBox Grid.Column="0" Text="{Binding Name}" VerticalAlignment="Center" IsReadOnly="True" BorderThickness="0" Background="Transparent" FontWeight="SemiBold"/>
-                                        <TextBox Grid.Column="1" Text="{Binding Location}" VerticalAlignment="Center" IsReadOnly="True" BorderThickness="0" Background="Transparent" Foreground="{StaticResource LightTextBrush}"/>
+                                        <!-- Using TextBlock instead of TextBox to prevent hover/focus styles -->
+                                        <TextBlock Grid.Column="0" Text="{Binding Name}" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource DarkTextBrush}"/>
+                                        <TextBlock Grid.Column="1" Text="{Binding Location}" VerticalAlignment="Center" Foreground="{StaticResource LightTextBrush}"/>
                                         <!-- Note: Using Click handler here because the Command binding in ListBox item template can be tricky without relative source -->
                                         <Button Grid.Column="2" Classes="Ghost" Content="🗑️" Padding="8" Click="OnDeleteStation" Foreground="Red"/>
                                     </Grid>
@@ -43,13 +44,13 @@
                     <TextBlock Text="New Station" FontSize="18" FontWeight="Bold" Foreground="{StaticResource DarkTextBrush}"/>
                     
                     <StackPanel Spacing="5">
-                         <TextBlock Text="Name" Foreground="{StaticResource LightTextBrush}" FontSize="12"/>
-                         <TextBox Text="{Binding StationName}" Watermark="e.g. Central Station"/>
+                         <TextBlock Text="Name" Foreground="{StaticResource DarkTextBrush}" FontWeight="SemiBold"/>
+                         <TextBox Text="{Binding StationName}" Watermark="e.g. Central Station" Foreground="{StaticResource DarkTextBrush}"/>
                     </StackPanel>
 
                     <StackPanel Spacing="5">
-                         <TextBlock Text="Location" Foreground="{StaticResource LightTextBrush}" FontSize="12"/>
-                         <TextBox Text="{Binding Location}" Watermark="e.g. Downtown"/>
+                         <TextBlock Text="Location" Foreground="{StaticResource DarkTextBrush}" FontWeight="SemiBold"/>
+                         <TextBox Text="{Binding Location}" Watermark="e.g. Downtown" Foreground="{StaticResource DarkTextBrush}"/>
                     </StackPanel>
                     
                     <TextBlock Text="{Binding ErrorMessage}" Foreground="#E74C3C" TextWrapping="Wrap" FontSize="12"/>
