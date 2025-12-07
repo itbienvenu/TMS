@@ -103,8 +103,14 @@ export interface Payment {
     user_id: string;
     phone_number: string;
     amount: number;
-    provider: 'momo' | 'tigocash';
+    provider: 'momo' | 'tigocash' | 'card' | 'paypal';
     status: string;
+}
+
+export interface PaymentCreate {
+    ticket_id: string;
+    phone_number?: string;
+    provider: 'momo' | 'tigocash' | 'card' | 'paypal';
 }
 
 export interface Role {

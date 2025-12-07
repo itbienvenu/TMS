@@ -170,7 +170,7 @@ class Payment(Base):
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     ticket_id = Column(String, ForeignKey("tickets.id"), nullable=False)
     user_id = Column(String, ForeignKey("users.id"), nullable=True)
-    phone_number = Column(String(20), nullable=False)
+    phone_number = Column(String(20), nullable=True)
     amount = Column(Float, nullable=False)
     provider = Column(String(50), nullable=False)
     status = Column(Enum(PaymentStatus), default=PaymentStatus.pending)

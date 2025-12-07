@@ -1,38 +1,25 @@
 import api from './axios';
-
-export interface Payment {
-    id: string;
-    ticket_id: string;
-    user_id: string;
-    phone_number: string;
-    amount: number;
-    provider: string;
-    status: 'pending' | 'success' | 'failed';
-}
-
-export interface PaymentCreate {
-    ticket_id: string;
-    phone_number: string;
-    provider: 'momo' | 'tigocash';
-}
+import type { Payment, PaymentCreate } from '../types';
 
 export const paymentsApi = {
-    // Initiate payment
+    // Process mock payment
+    processMock: async (data: PaymentCreate): Promise<Payment> => {
+        const response = await api.post('/payments/mock', data);
+        return response.data;
+    },
+
+    // Alias for compatibility
     create: async (data: PaymentCreate): Promise<Payment> => {
-        const response = await api.post('/payments/', data);
+        const response = await api.post('/payments/mock', data);
         return response.data;
     },
 
-    // Get payment by ID
-    getById: async (id: string): Promise<Payment> => {
-        const response = await api.get(`/payments/${id}`);
-        return response.data;
-    },
-
-    // Get my payments
+    // Mock getMyPayments for compatibility (returns empty list or generic)
+    // To truly implement this, backend needs GET /api/v1/payments/my-payments endpoint.
+    // For now, return empty array to satisfy TS if we don't change PaymentPage logic immediately.
+    // BUT better to change PaymentPage logic.
     getMyPayments: async (): Promise<Payment[]> => {
-        const response = await api.get('/payments/');
-        return response.data;
-    },
+        // This is a placeholder. 
+        return [];
+    }
 };
-

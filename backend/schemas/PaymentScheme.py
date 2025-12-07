@@ -6,10 +6,12 @@ from uuid import UUID
 class PaymentProvider(str, Enum):
     momo = "momo"
     tigocash = "tigocash"
+    card = "card"
+    paypal = "paypal"
 
 class PaymentCreate(BaseModel):
     ticket_id: UUID
-    phone_number: str
+    phone_number: str | None = None
     provider: PaymentProvider
 
 class PaymentResponse(BaseModel):

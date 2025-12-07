@@ -10,20 +10,25 @@ const PaymentPage = () => {
     const { ticketId } = useParams<{ ticketId: string }>();
     const navigate = useNavigate();
     const [phoneNumber, setPhoneNumber] = useState('');
-    const [selectedProvider, setSelectedProvider] = useState<'momo' | 'tigocash'>('momo');
+    const [selectedProvider, setSelectedProvider] = useState<'momo' | 'tigocash' | 'card' | 'paypal'>('momo');
 
     // Get ticket details
     const { data: ticket, isLoading: ticketLoading } = useQuery({
         queryKey: ['ticket', ticketId],
         queryFn: () => ticketsApi.getById(ticketId!),
         enabled: !!ticketId,
+        refetchInterval: (query) => {
+            const t = query.state.data;
+            if (t?.status === 'paid' || t?.status === 'active') return false;
+            return 3000;
+        }
     });
 
     // Create payment mutation
     const createPaymentMutation = useMutation({
         mutationFn: paymentsApi.create,
         onSuccess: () => {
-            // Poll for payment status
+            // Poll for payment status (handled by ticket polling)
             setTimeout(() => {
                 navigate('/my-tickets');
             }, 2000);
@@ -33,35 +38,20 @@ const PaymentPage = () => {
         },
     });
 
-    // Poll payment status
-    const { data: payment } = useQuery({
-        queryKey: ['payment', ticketId],
-        queryFn: async () => {
-            // Try to get payment for this ticket
-            const payments = await paymentsApi.getMyPayments();
-            return payments.find((p) => p.ticket_id === ticketId);
-        },
-        enabled: !!ticketId && createPaymentMutation.isSuccess,
-        refetchInterval: (query) => {
-            const paymentData = query.state.data;
-            // Stop polling if payment is successful or failed
-            if (paymentData?.status === 'success' || paymentData?.status === 'failed') {
-                return false;
-            }
-            return 3000; // Poll every 3 seconds
-        },
-    });
+    const paymentStatus = ticket?.status === 'paid' || ticket?.status === 'active' ? 'success' : 'pending';
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!phoneNumber || !ticketId) {
+        // Phone number required only for mobile money
+        if ((selectedProvider === 'momo' || selectedProvider === 'tigocash') && !phoneNumber) {
             alert('Please enter phone number');
             return;
         }
+        if (!ticketId) return;
 
         createPaymentMutation.mutate({
             ticket_id: ticketId,
-            phone_number: phoneNumber,
+            phone_number: (selectedProvider === 'momo' || selectedProvider === 'tigocash') ? phoneNumber : undefined,
             provider: selectedProvider,
         });
     };
@@ -120,13 +110,11 @@ const PaymentPage = () => {
                 </div>
 
                 {/* Payment Status */}
-                {payment && (
-                    <div className={`alert ${payment.status === 'success' ? 'alert-success' : payment.status === 'failed' ? 'alert-danger' : 'alert-warning'} d-flex align-items-center mb-4`} role="alert">
+                {(paymentStatus === 'success' || createPaymentMutation.isSuccess) && (
+                    <div className={`alert ${paymentStatus === 'success' ? 'alert-success' : 'alert-warning'} d-flex align-items-center mb-4`} role="alert">
                         <div className="me-3">
-                            {payment.status === 'success' ? (
+                            {paymentStatus === 'success' ? (
                                 <CheckCircle size={32} />
-                            ) : payment.status === 'failed' ? (
-                                <XCircle size={32} />
                             ) : (
                                 <div className="spinner-border spinner-border-sm" role="status">
                                     <span className="visually-hidden">Loading...</span>
@@ -135,21 +123,19 @@ const PaymentPage = () => {
                         </div>
                         <div>
                             <h4 className="alert-heading h6 fw-bold mb-1">
-                                Payment {payment.status === 'success' ? 'Successful' : payment.status === 'failed' ? 'Failed' : 'Pending'}
+                                Payment {paymentStatus === 'success' ? 'Successful' : 'Processing'}
                             </h4>
                             <p className="mb-0 small">
-                                {payment.status === 'success'
+                                {paymentStatus === 'success'
                                     ? 'Your ticket has been confirmed!'
-                                    : payment.status === 'failed'
-                                        ? 'Payment failed. Please try again.'
-                                        : 'Waiting for payment confirmation...'}
+                                    : 'Waiting for payment confirmation...'}
                             </p>
                         </div>
                     </div>
                 )}
 
                 {/* Payment Form */}
-                {!payment && (
+                {paymentStatus !== 'success' && (
                     <div className="card shadow-sm border-0 p-4">
                         <h2 className="h5 fw-bold mb-3">Payment Method</h2>
                         <form onSubmit={handleSubmit}>
@@ -165,7 +151,7 @@ const PaymentPage = () => {
                                             className={`btn w-100 d-flex flex-column align-items-center justify-content-center gap-2 p-3 border ${selectedProvider === 'momo' ? 'btn-primary bg-opacity-10 text-primary border-primary' : 'btn-light text-secondary'}`}
                                         >
                                             <Smartphone size={24} />
-                                            <span className="fw-bold small">Mobile Money</span>
+                                            <span className="fw-bold small">MTN Momo</span>
                                         </button>
                                     </div>
                                     <div className="col-6">
@@ -174,30 +160,64 @@ const PaymentPage = () => {
                                             onClick={() => setSelectedProvider('tigocash')}
                                             className={`btn w-100 d-flex flex-column align-items-center justify-content-center gap-2 p-3 border ${selectedProvider === 'tigocash' ? 'btn-primary bg-opacity-10 text-primary border-primary' : 'btn-light text-secondary'}`}
                                         >
+                                            <Smartphone size={24} />
+                                            <span className="fw-bold small">Airtel Money</span>
+                                        </button>
+                                    </div>
+                                    <div className="col-6">
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedProvider('card')}
+                                            className={`btn w-100 d-flex flex-column align-items-center justify-content-center gap-2 p-3 border ${selectedProvider === 'card' ? 'btn-primary bg-opacity-10 text-primary border-primary' : 'btn-light text-secondary'}`}
+                                        >
                                             <CreditCard size={24} />
-                                            <span className="fw-bold small">Tigo Cash</span>
+                                            <span className="fw-bold small">Card</span>
+                                        </button>
+                                    </div>
+                                    <div className="col-6">
+                                        <button
+                                            type="button"
+                                            onClick={() => setSelectedProvider('paypal')}
+                                            className={`btn w-100 d-flex flex-column align-items-center justify-content-center gap-2 p-3 border ${selectedProvider === 'paypal' ? 'btn-primary bg-opacity-10 text-primary border-primary' : 'btn-light text-secondary'}`}
+                                        >
+                                            <CreditCard size={24} />
+                                            <span className="fw-bold small">PayPal</span>
                                         </button>
                                     </div>
                                 </div>
                             </div>
 
                             <div className="mb-4">
-                                <label className="form-label fw-bold small text-secondary">
-                                    Phone Number
-                                </label>
-                                <input
-                                    type="tel"
-                                    value={phoneNumber}
-                                    onChange={(e) => setPhoneNumber(e.target.value)}
-                                    placeholder="Enter your phone number"
-                                    required
-                                    className="form-control"
-                                />
+                                {(selectedProvider === 'momo' || selectedProvider === 'tigocash') && (
+                                    <>
+                                        <label className="form-label fw-bold small text-secondary">
+                                            Phone Number
+                                        </label>
+                                        <input
+                                            type="tel"
+                                            value={phoneNumber}
+                                            onChange={(e) => setPhoneNumber(e.target.value)}
+                                            placeholder="Enter your phone number"
+                                            required
+                                            className="form-control"
+                                        />
+                                    </>
+                                )}
+                                {(selectedProvider === 'card') && (
+                                    <div className="p-3 bg-light text-center rounded text-muted">
+                                        Mock Payment: Click Pay to simulate Card success.
+                                    </div>
+                                )}
+                                {(selectedProvider === 'paypal') && (
+                                    <div className="p-3 bg-light text-center rounded text-muted">
+                                        Mock Payment: Click Pay to simulate PayPal success.
+                                    </div>
+                                )}
                             </div>
 
                             <button
                                 type="submit"
-                                disabled={createPaymentMutation.isPending || !phoneNumber}
+                                disabled={createPaymentMutation.isPending || ((selectedProvider === 'momo' || selectedProvider === 'tigocash') && !phoneNumber)}
                                 className="btn btn-primary w-100 fw-bold py-2"
                             >
                                 {createPaymentMutation.isPending ? 'Processing...' : `Pay ${price} RWF`}
@@ -206,7 +226,7 @@ const PaymentPage = () => {
                     </div>
                 )}
 
-                {payment?.status === 'success' && (
+                {paymentStatus === 'success' && (
                     <button
                         onClick={() => navigate('/my-tickets')}
                         className="btn btn-primary w-100 fw-bold py-2 mt-4"
