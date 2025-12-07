@@ -201,6 +201,9 @@ def create_user(db: Session, user: RegisterUser):
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return bcrypt.verify(plain_password, hashed_password)
 
+def get_password_hash(password: str) -> str:
+    return bcrypt.hash(password)
+
 def login_user(db: Session, user: LoginUser):
     """
     Login for regular users (customers) who book tickets via website.

@@ -31,3 +31,39 @@ body {
     box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15);
     border-color: #86b7fe;
 }
+
+/* Print Styles */
+@media print {
+    body {
+        background-color: white;
+    }
+
+    .no-print,
+    nav,
+    footer,
+    .navbar {
+        display: none !important;
+    }
+
+    .container {
+        max-width: 100% !important;
+        padding: 0 !important;
+    }
+
+    .ticket-card {
+        box-shadow: none !important;
+        border: 2px solid #000 !important;
+        break-inside: avoid;
+        page-break-after: always;
+        margin-bottom: 2rem;
+        transform: none !important;
+    }
+
+    .ticket-card:last-child {
+        page-break-after: auto;
+    }
+
+    .print-only {
+        display: block !important;
+    }
+}

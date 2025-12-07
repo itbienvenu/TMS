@@ -389,3 +389,63 @@ public class UserCreate
     public string? CompanyId { get; set; }
 }
 
+public class Driver
+{
+    [JsonPropertyName("id")]
+    public string Id { get; set; } = string.Empty;
+
+    [JsonPropertyName("full_name")]
+    public string FullName { get; set; } = string.Empty;
+
+    [JsonPropertyName("email")]
+    public string Email { get; set; } = string.Empty;
+
+    [JsonPropertyName("phone_number")]
+    public string? PhoneNumber { get; set; }
+
+    [JsonPropertyName("license_number")]
+    public string? LicenseNumber { get; set; }
+
+    [JsonPropertyName("bus_id")]
+    public string? BusId { get; set; }
+    
+    [JsonPropertyName("created_at")]
+    public DateTime CreatedAt { get; set; }
+}
+
+public class DriverCreate
+{
+    [JsonPropertyName("full_name")]
+    public string FullName { get; set; } = string.Empty;
+
+    [JsonPropertyName("email")]
+    public string Email { get; set; } = string.Empty;
+
+    [JsonPropertyName("phone_number")]
+    public string PhoneNumber { get; set; } = string.Empty;
+
+    [JsonPropertyName("license_number")]
+    public string LicenseNumber { get; set; } = string.Empty;
+    
+    [JsonPropertyName("bus_id")]
+    public string? BusId { get; set; }
+
+    [JsonPropertyName("password")]
+    public string Password { get; set; } = string.Empty;
+}
+
+public class DriverUpdate
+{
+    [JsonPropertyName("full_name")]
+    public string? FullName { get; set; }
+
+    [JsonPropertyName("phone_number")]
+    public string? PhoneNumber { get; set; }
+
+    [JsonPropertyName("license_number")]
+    public string? LicenseNumber { get; set; }
+    
+    [JsonPropertyName("bus_id")]
+    public string? BusId { get; set; }
+}
+

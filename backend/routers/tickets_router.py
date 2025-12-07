@@ -16,7 +16,7 @@ from uuid import UUID
 
 from dotenv import load_dotenv
 
-from database.models import Ticket, User, Bus, Route, BusStation
+from database.models import Ticket, User, Bus, Route, BusStation, Company
 from schemas.TicketsScheme import TicketCreate, TicketResponse
 from database.dbs import get_db
 
@@ -132,12 +132,14 @@ async def create_ticket(ticket_req: TicketCreate, db: Session = Depends(get_db))
         status=new_ticket.status,
         created_at=new_ticket.created_at,
         mode=new_ticket.mode,
-        route= {
+        route={
             "origin": origin_name,
             "destination": destination_name,
-             "price": route_ifo.price if route_ifo else None
+            "price": route_ifo.price if route_ifo else None
         } if route_ifo else None,
-        bus=bus.plate_number
+        bus=bus.plate_number,
+        drivers=[d.full_name for d in bus.drivers],
+        company_name= db.query(Company).filter(Company.id == company_id).first().name if company_id else None
     )
 
 
@@ -157,7 +159,7 @@ async def list_company_tickets(
 
     tickets = db.query(Ticket).options(
         orm.joinedload(Ticket.route),
-        orm.joinedload(Ticket.bus)
+        orm.joinedload(Ticket.bus).joinedload(Bus.drivers)
     ).filter(
         Ticket.company_id == user.company_id,
         Ticket.mode != 'deleted'
@@ -184,7 +186,8 @@ async def list_company_tickets(
             created_at=t.created_at,
             mode=t.mode,
             route=route_data,
-            bus=t.bus.plate_number if t.bus else None
+            bus=t.bus.plate_number if t.bus else None,
+            drivers=[d.full_name for d in t.bus.drivers] if t.bus and t.bus.drivers else []
         ))
     return response
 
@@ -234,46 +237,20 @@ async def list_user_tickets(db: Session = Depends(get_db), user: User = Depends(
     """
     tickets = db.query(Ticket).options(
         orm.joinedload(Ticket.route),
-        orm.joinedload(Ticket.bus)
+        orm.joinedload(Ticket.bus).joinedload(Bus.drivers),
+        orm.joinedload(Ticket.company)
     ).filter(
         Ticket.user_id == str(user.id),
         Ticket.mode == 'active'
     ).all()
     
-    # Wait, simple joinedload(Ticket.route) is enough if we fetch station names inside the loop or if route has relation to stations
-    # Checking models.py: Route has origin_id, destination_id. BusStation has no backref named 'origin_id_rel'.
-    # Route has NO relationship to BusStation named 'origin_station' defined in the snippet I saw!
-    # Wait, models.py: 
-    # class Route(Base): ... origin_id = ... destination_id = ... 
-    # NO relationship defined for origin/destination stations in Route class in models.py snippet?
-    # Let me re-read models.py snippet provided in Step 299...
-    # Lines 248-251: company, segments, buses, tickets using relationship.
-    # NO relationship to BusStation for origin_id/destination_id!
-    # That explains why I need to fetch stations manually or add relationships.
-    
-    # Correction: I will fetch them manually or rely on `RouteSegment` if available? 
-    # Ideally, I should add relationships to Route model. But user didn't ask me to change Model structure heavily if avoidable.
-    # However, `tickets_router.py` get_ticket (line 198) manually queries stations.
+    # ... (skipping some parts)
     
     response = []
     for t in tickets:
         route_data = None
         if t.route:
-             # Manual fetch or use existing logic
-             # Ideally efficiently: but for now let's do it per ticket or fix logic.
-             # Actually, `tickets_router.py` `get_ticket` does manual queries.
-             # It's inefficient for list, but safe. 
-             # Better: fetch stations.
-             
-             origin_name = "N/A"
-             destination_name = "N/A"
-             
-             # To avoid N+1, I should really Fix the Route model to have relationships to Stations.
-             # But let's stick to manual query for now to minimize risk of breaking other things?
-             # No, 2 manual queries per ticket is bad.
-             # Let's assume I can change `TicketResponse` construction to use IDs or whatever is available, 
-             # BUT the frontend expects names: {ticket.route?.origin || 'N/A'}
-             
+             # ... (manual fetch logic) ...
              o_station = db.query(BusStation).filter(BusStation.id == t.route.origin_id).first()
              d_station = db.query(BusStation).filter(BusStation.id == t.route.destination_id).first()
              
@@ -291,7 +268,9 @@ async def list_user_tickets(db: Session = Depends(get_db), user: User = Depends(
             created_at=t.created_at,
             mode=t.mode,
             route=route_data,
-            bus=t.bus.plate_number if t.bus else None
+            bus=t.bus.plate_number if t.bus else None,
+            drivers=[d.full_name for d in t.bus.drivers] if t.bus and t.bus.drivers else [],
+            company_name=t.company.name if t.company else "Unknown Company"
         ))
 
     return response

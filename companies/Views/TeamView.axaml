@@ -212,6 +212,95 @@
                         </Border>
                     </Grid>
                 </TabItem>
+
+                <!-- NEW Tab: Drivers -->
+                <TabItem Header="Drivers" Foreground="Black" FontSize="16" FontWeight="SemiBold">
+                    <Grid ColumnDefinitions="*,350" Margin="0,20,0,0">
+                        <!-- Drivers List -->
+                        <Border Grid.Column="0" Classes="Card" Margin="0,0,20,0">
+                            <Grid RowDefinitions="Auto,Auto,*">
+                                <Grid Grid.Row="0" Margin="0,0,0,15">
+                                    <TextBlock Text="All Drivers" FontSize="18" FontWeight="Bold" Foreground="{StaticResource DarkTextBrush}"/>
+                                    <Button Classes="Outline" Content="🔄 Refresh" Command="{Binding LoadDriversCommand}" HorizontalAlignment="Right"/>
+                                </Grid>
+
+                                <!-- Table Header -->
+                                <Grid Grid.Row="1" ColumnDefinitions="*,*,*,100" Margin="15,0,15,5">
+                                    <TextBlock Grid.Column="0" Text="NAME" FontWeight="SemiBold" Foreground="{StaticResource LightTextBrush}" FontSize="12"/>
+                                    <TextBlock Grid.Column="1" Text="LICENSE" FontWeight="SemiBold" Foreground="{StaticResource LightTextBrush}" FontSize="12"/>
+                                    <TextBlock Grid.Column="2" Text="PHONE" FontWeight="SemiBold" Foreground="{StaticResource LightTextBrush}" FontSize="12"/>
+                                    <TextBlock Grid.Column="3" Text="ACTIONS" FontWeight="SemiBold" Foreground="{StaticResource LightTextBrush}" FontSize="12" HorizontalAlignment="Right"/>
+                                </Grid>
+                                <Separator Grid.Row="1" VerticalAlignment="Bottom" Background="{StaticResource BorderBrush}" Margin="0,5"/>
+
+                                <ListBox Grid.Row="2" ItemsSource="{Binding Drivers}" Background="Transparent" BorderThickness="0">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="10">
+                                                <Grid ColumnDefinitions="*,*,*,100">
+                                                    <TextBlock Grid.Column="0" Text="{Binding FullName}" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource DarkTextBrush}"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding LicenseNumber}" VerticalAlignment="Center" Foreground="{StaticResource LightTextBrush}"/>
+                                                    <TextBlock Grid.Column="2" Text="{Binding PhoneNumber}" VerticalAlignment="Center" Foreground="{StaticResource DarkTextBrush}"/>
+                                                    
+                                                    <Button Grid.Column="3" Classes="Ghost" Content="🗑️" Padding="8" Command="{Binding $parent[UserControl].DataContext.DeleteDriverCommand}" CommandParameter="{Binding}" Foreground="Red" HorizontalAlignment="Right"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </Grid>
+                        </Border>
+
+                        <!-- Add Driver Form -->
+                        <Border Grid.Column="1" Classes="Card">
+                            <StackPanel Spacing="15">
+                                <TextBlock Text="Add New Driver" FontSize="18" FontWeight="Bold" Foreground="{StaticResource DarkTextBrush}"/>
+                                <TextBlock Text="Register a new driver for your company." Foreground="{StaticResource LightTextBrush}" TextWrapping="Wrap" FontSize="13"/>
+                                
+                                <ScrollViewer MaxHeight="600">
+                                    <StackPanel Spacing="15">
+                                        <StackPanel Spacing="5">
+                                            <TextBlock Text="Full Name" FontWeight="SemiBold" Foreground="{StaticResource DarkTextBrush}"/>
+                                            <TextBox Text="{Binding NewDriverName}" Watermark="Driver Name"/>
+                                        </StackPanel>
+                                        
+                                        <StackPanel Spacing="5">
+                                            <TextBlock Text="Email" FontWeight="SemiBold" Foreground="{StaticResource DarkTextBrush}"/>
+                                            <TextBox Text="{Binding NewDriverEmail}" Watermark="driver@company.com"/>
+                                        </StackPanel>
+                                        
+                                        <StackPanel Spacing="5">
+                                            <TextBlock Text="Phone Number" FontWeight="SemiBold" Foreground="{StaticResource DarkTextBrush}"/>
+                                            <TextBox Text="{Binding NewDriverPhone}" Watermark="+250 ..."/>
+                                        </StackPanel>
+
+                                        <StackPanel Spacing="5">
+                                            <TextBlock Text="License Number" FontWeight="SemiBold" Foreground="{StaticResource DarkTextBrush}"/>
+                                            <TextBox Text="{Binding NewDriverLicense}" Watermark="LIC-12345"/>
+                                        </StackPanel>
+                                        
+                                        <!-- Optional: Assign Bus immediately? For now let's keep it simple or add if user wants. User asked 'assignmng them busess'. 
+                                             Usually done in Bus creation or here. Let's add simple Bus selection if buses available. 
+                                             Assuming we have list of Buses in ViewModel. If not, maybe just create driver first.
+                                             User said: "when creating the bus they will assign bus a driver".
+                                             So maybe Bus View should have driver assignment? 
+                                             But user also said "record his names email password...". 
+                                             So this form creates the driver entity. -->
+
+                                        <StackPanel Spacing="5">
+                                            <TextBlock Text="Password" FontWeight="SemiBold" Foreground="{StaticResource DarkTextBrush}"/>
+                                            <TextBox Text="{Binding NewDriverPassword}" PasswordChar="●"/>
+                                        </StackPanel>
+                                        
+                                        <Button Content="Create Driver" Command="{Binding CreateDriverCommand}" HorizontalAlignment="Stretch" Margin="0,10,0,0"/>
+
+                                        <TextBlock Text="{Binding DriverErrorMessage}" Foreground="Red" TextWrapping="Wrap" IsVisible="{Binding DriverErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </TabItem>
             </TabControl>
         </Grid>
     </Border>

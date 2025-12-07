@@ -63,17 +63,40 @@ public partial class TeamViewModel : ViewModelBase
     [ObservableProperty]
     private bool _showRoleForm;
 
+    // --- Drivers Collection ---
+    [ObservableProperty]
+    private ObservableCollection<Driver> _drivers = new();
+    
+    // --- Driver Creation Form ---
+    [ObservableProperty]
+    private string _newDriverName = string.Empty;
+    [ObservableProperty]
+    private string _newDriverEmail = string.Empty;
+    [ObservableProperty]
+    private string _newDriverPhone = string.Empty;
+    [ObservableProperty]
+    private string _newDriverLicense = string.Empty;
+    [ObservableProperty]
+    private string _newDriverPassword = string.Empty;
+    
+    [ObservableProperty]
+    private string _driverErrorMessage = string.Empty;
+
+    private readonly DriverService _driverService;
+
     public TeamViewModel()
     {
         var token = TokenStorage.AccessToken;
         _companyService = new CompanyService(token);
         _roleService = new RoleService(token);
         _permissionService = new PermissionService(token);
+        _driverService = new DriverService(token);
 
         IsLoading = true;
         LoadDataAsync().ConfigureAwait(false);
     }
-
+    
+    // Update LoadDataAsync to include drivers
     private async Task LoadDataAsync()
     {
         IsLoading = true;
@@ -82,16 +105,100 @@ public partial class TeamViewModel : ViewModelBase
             var userTask = _companyService.GetCompanyUsersAsync();
             var roleTask = _roleService.GetAllRolesAsync();
             var permTask = _permissionService.GetAllPermissionsAsync();
+            var driverTask = _driverService.GetAllDriversAsync();
 
-            await Task.WhenAll(userTask, roleTask, permTask);
+            await Task.WhenAll(userTask, roleTask, permTask, driverTask);
 
             Users = new ObservableCollection<CompanyUser>(await userTask);
             Roles = new ObservableCollection<Role>(await roleTask);
             AvailablePermissions = new ObservableCollection<Permission>(await permTask);
+            Drivers = new ObservableCollection<Driver>(await driverTask);
         }
         catch (Exception ex)
         {
             ErrorMessage = $"Error loading data: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task LoadDriversAsync()
+    {
+        IsLoading = true;
+        try 
+        {
+            Drivers = new ObservableCollection<Driver>(await _driverService.GetAllDriversAsync());
+        }
+        catch (Exception ex)
+        {
+             DriverErrorMessage = $"Error loading drivers: {ex.Message}";
+        }
+        finally 
+        {
+            IsLoading = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task CreateDriverAsync()
+    {
+        if (string.IsNullOrWhiteSpace(NewDriverName) || string.IsNullOrWhiteSpace(NewDriverEmail) || 
+            string.IsNullOrWhiteSpace(NewDriverPassword) || string.IsNullOrWhiteSpace(NewDriverLicense))
+        {
+            DriverErrorMessage = "Please fill in all required fields (Name, Email, Password, License).";
+            return;
+        }
+
+        IsLoading = true;
+        try
+        {
+            var newDriver = new DriverCreate
+            {
+                FullName = NewDriverName,
+                Email = NewDriverEmail,
+                PhoneNumber = NewDriverPhone,
+                LicenseNumber = NewDriverLicense,
+                Password = NewDriverPassword
+            };
+
+            await _driverService.CreateDriverAsync(newDriver);
+            
+            // Reset form
+            NewDriverName = "";
+            NewDriverEmail = "";
+            NewDriverPhone = "";
+            NewDriverLicense = "";
+            NewDriverPassword = "";
+            DriverErrorMessage = "Driver created successfully.";
+
+            // Refresh list
+            await LoadDriversAsync();
+        }
+        catch (Exception ex)
+        {
+            DriverErrorMessage = $"Failed to create driver: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task DeleteDriverAsync(Driver driver)
+    {
+        IsLoading = true;
+        try
+        {
+            await _driverService.DeleteDriverAsync(driver.Id);
+            Drivers.Remove(driver);
+        }
+        catch (Exception ex)
+        {
+            DriverErrorMessage = $"Failed to delete driver: {ex.Message}";
         }
         finally
         {

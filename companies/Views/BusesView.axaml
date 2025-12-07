@@ -86,6 +86,53 @@
                         <Button Classes="Ghost" Content="Cancel" Command="{Binding CancelEditCommand}"/>
                         <Button Content="Save Bus" Command="{Binding SaveBusCommand}"/>
                     </StackPanel>
+                    
+                    <Separator Background="{StaticResource BorderBrush}" Margin="0,10"/>
+                    
+                    <!-- Driver Management -->
+                    <TextBlock Text="Drivers" FontSize="16" FontWeight="Bold" Foreground="{StaticResource DarkTextBrush}"/>
+                    
+                    <Border Background="#F8F9FA" CornerRadius="4" Padding="10">
+                        <StackPanel Spacing="10">
+                            <!-- Assigned Drivers -->
+                            <TextBlock Text="Assigned:" FontWeight="SemiBold" FontSize="12" Foreground="{StaticResource LightTextBrush}"/>
+                            <ItemsControl ItemsSource="{Binding AssignedDrivers}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,5">
+                                            <TextBlock Text="{Binding FullName}" VerticalAlignment="Center" FontWeight="Bold" Foreground="{StaticResource DarkTextBrush}"/>
+                                            <Button Grid.Column="1" Classes="Ghost" Content="❌" ToolTip.Tip="Unassign" 
+                                                    Command="{Binding $parent[UserControl].DataContext.UnassignDriverCommand}" 
+                                                    CommandParameter="{Binding}" Foreground="Red" Padding="5,0"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Text="No drivers assigned." IsVisible="{Binding !AssignedDrivers.Count}"  Foreground="{StaticResource LightTextBrush}" FontStyle="Italic" FontSize="11"/>
+                            
+                            <Separator Background="{StaticResource BorderBrush}"/>
+                            
+                            <!-- Assign New Driver -->
+                            <TextBlock Text="Assign Driver:" FontWeight="SemiBold" FontSize="12" Foreground="{StaticResource LightTextBrush}"/>
+                            <TextBox Text="{Binding DriverSearchQuery}" Watermark="Search drivers..." Classes="Small"/>
+                            
+                            <ListBox ItemsSource="{Binding AvailableDrivers}" MaxHeight="150" Background="White" BorderThickness="1" BorderBrush="#E0E0E0">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding FullName}" FontWeight="SemiBold" FontSize="12"/>
+                                                <TextBlock Text="{Binding LicenseNumber}" FontSize="10" Foreground="{StaticResource LightTextBrush}"/>
+                                            </StackPanel>
+                                            <Button Grid.Column="1" Classes="Outline" Content="Assign" FontSize="10" Padding="5,2"
+                                                    Command="{Binding $parent[UserControl].DataContext.AssignDriverCommand}" 
+                                                    CommandParameter="{Binding}"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
             </Border>
         </Grid>

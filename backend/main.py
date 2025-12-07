@@ -2,7 +2,7 @@
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import login_router, routes_router, tickets_router, buses_router, payments_router, roles_router, permissions_router, companies_router, schedules_router, route_segment_router, stations_router, admin_router, search_router
+from routers import login_router, routes_router, tickets_router, buses_router, payments_router, roles_router, permissions_router, companies_router, schedules_router, route_segment_router, stations_router, admin_router, search_router, drivers_router
 from database.dbs import engine
 from database.models import Base
 import uvicorn
@@ -39,6 +39,7 @@ app.include_router(stations_router.router)
 app.include_router(schedules_router.router)
 app.include_router(admin_router.router)
 app.include_router(search_router.router)
+app.include_router(drivers_router.router)
 
 
 

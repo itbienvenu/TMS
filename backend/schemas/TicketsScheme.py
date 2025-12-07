@@ -30,7 +30,9 @@ class TicketResponse(BaseModel):
     created_at: datetime
     mode: str
     route: Optional[dict] = None
-    bus:Optional[str] = None
+    bus: Optional[str] = None
+    drivers: Optional[List[str]] = None
+    company_name: Optional[str] = None
 
     class Config:
         from_attributes = True

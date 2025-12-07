@@ -68,6 +68,8 @@ export interface Ticket {
     mode: string;
     route?: Record<string, any>;
     bus?: string;
+    drivers?: string[];
+    company_name?: string;
 }
 
 export interface TicketCreate {

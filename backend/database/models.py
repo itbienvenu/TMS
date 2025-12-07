@@ -202,6 +202,7 @@ class Company(Base):
     roles = relationship("Role", back_populates="company")
     # Company-scoped permissions
     permissions = relationship("Permission", back_populates="company")
+    drivers = relationship("Driver", back_populates="company")
 
 
 # Bus model
@@ -218,6 +219,7 @@ class Bus(Base):
     schedules = relationship("Schedule", back_populates="bus")
     tickets = relationship("Ticket", back_populates="bus")
     routes = relationship("Route", secondary=bus_routes, back_populates="buses")
+    drivers = relationship("Driver", back_populates="bus")
 
 # Bus station model
 class BusStation(Base):
@@ -305,6 +307,24 @@ class Ticket(Base):
     route = relationship("Route", back_populates='tickets')
 
 
+
+class Driver(Base):
+    __tablename__ = "drivers"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    full_name = Column(String, nullable=False)
+    email = Column(String, unique=True, nullable=False)
+    phone_number = Column(String, nullable=True)
+    password_hash = Column(String, nullable=False)
+    license_number = Column(String, nullable=True)
+    
+    company_id = Column(String, ForeignKey("companies.id"))
+    bus_id = Column(String, ForeignKey("buses.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.now(UTC))
+
+    company = relationship("Company", back_populates="drivers")
+    bus = relationship("Bus", back_populates="drivers")
+
+
 # class CompanyRole(Base):
 #     __tablename__ = "company_roles"
 #     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
@@ -313,4 +333,3 @@ class Ticket(Base):
 
 #     company = relationship("Company", back_populates="roles")
 #     users = relationship("User", secondary=user_roles, back_populates="company_roles")
-
