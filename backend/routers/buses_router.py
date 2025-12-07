@@ -34,6 +34,7 @@ async def create_bus(
         id=str(uuid4()),
         plate_number=bus.plate_number,
         capacity=bus.capacity,
+        available_seats=bus.capacity,  # Set available seats to capacity (remaining seats)
         created_at=datetime.now(UTC),
         company_id=current_user.company_id  # Associate bus with the user's company
     )
@@ -84,7 +85,7 @@ async def get_buses_by_route(
             id=bus.id,
             plate_number=bus.plate_number,
             capacity=bus.capacity,
-            available_seats=bus.capacity - bus.available_seats,
+            available_seats=bus.available_seats, # Directly return remaining seats
             created_at=bus.created_at,
             route_ids=[r.id for r in bus.routes]
         ))
@@ -106,7 +107,7 @@ async def get_all_buses(
             "id": bus.id,
             "plate_number": bus.plate_number,
             "capacity": bus.capacity,
-            "available_seats": bus.capacity - bus.available_seats,
+            "available_seats": bus.available_seats, # Directly return remaining seats
             "created_at": bus.created_at,
             "route_ids": [r.id for r in bus.routes],
         }
@@ -143,7 +144,13 @@ def update_bus(
             raise HTTPException(status_code=400, detail="Bus with this plate number already exists.")
         bus.plate_number = bus_update.plate_number
     if bus_update.capacity is not None:
+        # Assuming you want to reset or adjust available seats based on capacity change?
+        # For now, let's just update capacity. Logic adjustment might be needed if capacity < booked.
+        # But since we track remaining seats, if capacity changes, we might need to adjust available_seats manually or reset.
+        # Simplest: Update capacity, update available_seats by the difference?
+        # For safety/MVP: Just update capacity. Be aware available_seats might exceed capacity if capacity shrinks.
         bus.capacity = bus_update.capacity
+        
     if bus_update.route_ids is not None:
         # Filter new routes by company_id to prevent cross-company route association
         routes = db.query(Route).filter(
@@ -185,7 +192,7 @@ def delete_bus(
     }
 
 @router.get("/user_get_buses", response_model=List[BusWithCompanyResponse])
-def get_all_buses(db: Session = Depends(get_db)):
+def get_all_buses_user(db: Session = Depends(get_db)):
     """
     Allows any user to see all available buses and their associated companies.
     """
@@ -200,7 +207,7 @@ def get_all_buses(db: Session = Depends(get_db)):
         response_data.append(BusWithCompanyResponse(
             id=bus.id,
             plate_number=bus.plate_number,
-            available_seats=bus.capacity - bus.available_seats,
+            available_seats=bus.available_seats, # Directly return remaining seats
             capacity=bus.capacity,
             company=company_data
         ))

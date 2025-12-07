@@ -21,22 +21,22 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>((set) => ({
     user: null,
-    token: localStorage.getItem('token'),
-    isAuthenticated: !!localStorage.getItem('token'),
+    token: localStorage.getItem('access_token'),
+    isAuthenticated: !!localStorage.getItem('access_token'),
     isLoading: false,
 
     login: (token, user) => {
-        localStorage.setItem('token', token);
+        localStorage.setItem('access_token', token);
         set({ token, user, isAuthenticated: true });
     },
 
     logout: () => {
-        localStorage.removeItem('token');
+        localStorage.removeItem('access_token');
         set({ token: null, user: null, isAuthenticated: false });
     },
 
     checkAuth: async () => {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('access_token');
         if (!token) {
             set({ isAuthenticated: false, user: null });
             return;
@@ -48,7 +48,7 @@ export const useAuthStore = create<AuthState>((set) => ({
             set({ user: response.data, isAuthenticated: true });
         } catch (error) {
             console.error("Auth check failed", error);
-            localStorage.removeItem('token');
+            localStorage.removeItem('access_token');
             set({ token: null, user: null, isAuthenticated: false });
         } finally {
             set({ isLoading: false });

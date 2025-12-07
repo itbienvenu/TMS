@@ -12,6 +12,8 @@
 
     <Application.Resources>
         <converters:NullToTextConverter x:Key="NullToTextConverter"/>
+        <converters:StringEqualsConverter x:Key="StringEqualsConverter"/>
+        <converters:StringNotEqualsConverter x:Key="StringNotEqualsConverter"/>
         
         <!-- Modern Color Palette -->
         <Color x:Key="PrimaryBlueColor">#0056B3</Color> <!-- Professional Blue -->

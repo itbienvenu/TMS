@@ -1,27 +1,20 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import api from '../lib/api';
+import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { Bus as BusIcon, AlertCircle } from 'lucide-react';
-
-interface Trip {
-    schedule_id: string;
-    company_name: string;
-    origin_station: string;
-    destination_station: string;
-    departure_time: string;
-    arrival_time: string;
-    price: number;
-    available_seats: number;
-    bus_plate: string;
-    route_id: string;
-}
+import { schedulesApi, type ScheduleSearchResult } from '../api/schedules';
+import { ticketsApi } from '../api/tickets';
+import { useAuthStore } from '../store/authStore';
 
 const SearchResults = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
-    const [trips, setTrips] = useState<Trip[]>([]);
+    const location = useLocation();
+    const { isAuthenticated, user } = useAuthStore();
+
+    const [trips, setTrips] = useState<ScheduleSearchResult[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [bookingId, setBookingId] = useState<string | null>(null);
 
     const originId = searchParams.get('origin');
     const destinationId = searchParams.get('destination');
@@ -32,14 +25,13 @@ const SearchResults = () => {
             setLoading(true);
             setError('');
             try {
-                const res = await api.get(`/search/trips`, {
-                    params: {
-                        origin_id: originId,
-                        destination_id: destinationId,
-                        travel_date: date,
-                    },
+                // calls /api/v1/schedules/search
+                const data = await schedulesApi.search({
+                    origin_id: originId || undefined,
+                    destination_id: destinationId || undefined,
+                    date: date || undefined
                 });
-                setTrips(res.data);
+                setTrips(data);
             } catch (err) {
                 console.error("Failed to fetch trips", err);
                 setError('Failed to load trips. Please try again.');
@@ -48,7 +40,7 @@ const SearchResults = () => {
             }
         };
 
-        if (originId && destinationId) {
+        if (originId || destinationId || date) {
             fetchTrips();
         }
     }, [originId, destinationId, date]);
@@ -58,104 +50,136 @@ const SearchResults = () => {
     };
 
     const calculateDuration = (start: string, end: string) => {
+        if (!end) return 'N/A';
         const diff = new Date(end).getTime() - new Date(start).getTime();
         const hours = Math.floor(diff / (1000 * 60 * 60));
         const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
         return `${hours}h ${minutes}m`;
     };
 
-    const handleBook = (trip: Trip) => {
-        // Navigate to booking page (to be implemented)
-        // For now, let's just log it or show an alert if not logged in
-        const token = localStorage.getItem('token');
-        if (!token) {
-            navigate('/login', { state: { from: `/book/${trip.schedule_id}` } });
-        } else {
-            navigate(`/book/${trip.schedule_id}`);
+    const handleBook = async (trip: ScheduleSearchResult) => {
+        if (!isAuthenticated || !user?.id) {
+            // Redirect to login, retain current location to return here
+            navigate('/login', { state: { from: location } });
+            return;
+        }
+
+        if (trip.available_seats <= 0) {
+            alert('Sorry, this bus is full.');
+            return;
+        }
+
+        // Simple confirmation before booking
+        if (window.confirm(`Confirm booking for ${trip.origin} → ${trip.destination}?\nPrice: ${trip.price} RWF`)) {
+            setBookingId(trip.id);
+            try {
+                const ticket = await ticketsApi.create({
+                    user_id: user.id,
+                    bus_id: trip.bus_id,
+                    route_id: trip.route_id,
+                    schedule_id: trip.id
+                });
+                // Navigate directly to payment
+                navigate(`/payment/${ticket.id}`);
+            } catch (err: any) {
+                console.error("Booking failed", err);
+                alert(err.response?.data?.detail || 'Failed to book ticket.');
+            } finally {
+                setBookingId(null);
+            }
         }
     };
 
     return (
-        <div className="min-h-screen bg-gray-100 py-8 px-4">
-            <div className="max-w-4xl mx-auto">
-                <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-bold text-gray-800">
-                        Search Results
-                    </h2>
-                    <div className="text-sm text-gray-600 bg-white px-4 py-2 rounded-full shadow-sm">
-                        {date} • {trips.length} Buses Found
+        <div className="min-vh-100 bg-light py-5">
+            <div className="container" style={{ maxWidth: '900px' }}>
+                <div className="d-flex justify-content-between align-items-center mb-4">
+                    <h2 className="h4 fw-bold text-dark mb-0">Search Results</h2>
+                    <div className="badge bg-white text-secondary shadow-sm rounded-pill px-3 py-2 fw-normal border">
+                        {date} <span className="mx-2">•</span> {trips.length} Buses Found
                     </div>
                 </div>
 
                 {loading ? (
-                    <div className="flex justify-center py-20">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                    <div className="d-flex justify-content-center py-5">
+                        <div className="spinner-border text-primary" role="status">
+                            <span className="visually-hidden">Loading...</span>
+                        </div>
                     </div>
                 ) : error ? (
-                    <div className="bg-red-50 text-red-600 p-4 rounded-lg flex items-center gap-2">
-                        <AlertCircle className="h-5 w-5" />
+                    <div className="alert alert-danger d-flex align-items-center gap-2" role="alert">
+                        <AlertCircle size={20} />
                         {error}
                     </div>
                 ) : trips.length === 0 ? (
-                    <div className="bg-white p-10 rounded-lg shadow-sm text-center">
-                        <BusIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-xl font-medium text-gray-800 mb-2">No buses found</h3>
-                        <p className="text-gray-500">Try changing your search criteria or date.</p>
-                        <button
-                            onClick={() => navigate('/')}
-                            className="mt-4 text-blue-600 hover:text-blue-800 font-medium"
-                        >
-                            Go back to search
-                        </button>
+                    <div className="card border-0 shadow-sm p-5 text-center">
+                        <div className="mb-3">
+                            <BusIcon className="text-secondary opacity-50" size={64} />
+                        </div>
+                        <h3 className="h5 fw-bold text-dark mb-2">No buses found</h3>
+                        <p className="text-muted mb-4">Try changing your search criteria or date.</p>
+                        <div className="d-inline-block">
+                            <button
+                                onClick={() => navigate('/')}
+                                className="btn btn-link text-decoration-none fw-bold"
+                            >
+                                Go back to search
+                            </button>
+                        </div>
                     </div>
                 ) : (
-                    <div className="space-y-4">
+                    <div className="d-flex flex-column gap-3">
                         {trips.map((trip) => (
-                            <div key={trip.schedule_id} className="bg-white rounded-lg shadow-sm hover:shadow-md transition p-6 border border-gray-100">
-                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-
+                            <div key={trip.id} className="card border-0 shadow-sm p-4">
+                                <div className="row align-items-center gy-4">
                                     {/* Company Info */}
-                                    <div className="flex-1">
-                                        <h3 className="text-lg font-bold text-gray-900">{trip.company_name}</h3>
-                                        <div className="text-sm text-gray-500 flex items-center gap-2 mt-1">
-                                            <BusIcon className="h-4 w-4" />
-                                            {trip.bus_plate} • {trip.available_seats} seats left
+                                    <div className="col-md-3">
+                                        <h3 className="h6 fw-bold text-dark mb-1">{trip.company_name}</h3>
+                                        <div className="small text-muted d-flex align-items-center gap-1">
+                                            <BusIcon size={14} />
+                                            {trip.bus_plate_number}
+                                            <span className="mx-1">•</span>
+                                            <span className={trip.available_seats > 0 ? "text-success" : "text-danger"}>
+                                                {trip.available_seats} seats
+                                            </span>
                                         </div>
                                     </div>
 
                                     {/* Journey Info */}
-                                    <div className="flex-2 flex items-center gap-8 text-center">
-                                        <div>
-                                            <div className="text-xl font-bold text-gray-800">{formatTime(trip.departure_time)}</div>
-                                            <div className="text-xs text-gray-500">{trip.origin_station}</div>
-                                        </div>
-
-                                        <div className="flex flex-col items-center">
-                                            <div className="text-xs text-gray-400 mb-1">{calculateDuration(trip.departure_time, trip.arrival_time)}</div>
-                                            <div className="w-24 h-px bg-gray-300 relative">
-                                                <div className="absolute -top-1.5 right-0 w-3 h-3 border-t-2 border-r-2 border-gray-300 rotate-45"></div>
+                                    <div className="col-md-6">
+                                        <div className="d-flex align-items-center justify-content-center gap-4 text-center">
+                                            <div className="flex-shrink-0">
+                                                <div className="fw-bold fs-5 text-dark">{formatTime(trip.departure_time)}</div>
+                                                <div className="small text-muted text-truncate" style={{ maxWidth: '100px' }}>{trip.origin}</div>
                                             </div>
-                                        </div>
 
-                                        <div>
-                                            <div className="text-xl font-bold text-gray-800">{formatTime(trip.arrival_time)}</div>
-                                            <div className="text-xs text-gray-500">{trip.destination_station}</div>
+                                            <div className="flex-grow-1 d-flex flex-column align-items-center px-3">
+                                                <div className="small text-muted mb-1">{calculateDuration(trip.departure_time, trip.arrival_time)}</div>
+                                                <div className="w-100 position-relative border-top">
+                                                    <span className="position-absolute top-0 end-0 translate-middle-y" style={{ borderTop: '5px solid transparent', borderBottom: '5px solid transparent', borderLeft: '6px solid #dee2e6' }}></span>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex-shrink-0">
+                                                <div className="fw-bold fs-5 text-dark">{trip.arrival_time ? formatTime(trip.arrival_time) : '--:--'}</div>
+                                                <div className="small text-muted text-truncate" style={{ maxWidth: '100px' }}>{trip.destination}</div>
+                                            </div>
                                         </div>
                                     </div>
 
                                     {/* Price & Action */}
-                                    <div className="flex-1 flex flex-col items-end gap-2">
-                                        <div className="text-2xl font-bold text-blue-600">
-                                            KES {trip.price.toLocaleString()}
+                                    <div className="col-md-3 text-md-end text-center">
+                                        <div className="h4 fw-bold text-primary mb-3">
+                                            {trip.price} RWF
                                         </div>
                                         <button
                                             onClick={() => handleBook(trip)}
-                                            className="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 px-6 rounded-md transition"
+                                            disabled={trip.available_seats <= 0 || bookingId === trip.id}
+                                            className={`btn ${trip.available_seats > 0 ? 'btn-warning' : 'btn-secondary'} text-white fw-bold w-100`}
                                         >
-                                            Select Seat
+                                            {bookingId === trip.id ? 'Booking...' : trip.available_seats > 0 ? 'Book Ticket' : 'Sold Out'}
                                         </button>
                                     </div>
-
                                 </div>
                             </div>
                         ))}

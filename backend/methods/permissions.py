@@ -9,7 +9,7 @@ def check_permission(permission_name: str):
     Dependency that checks the *effective* permission set of the current company user,
     including role-based permissions plus per-user overrides.
     """
-    def wrapper(current_user: CompanyUser = Depends(get_company_user_func), db: Session = Depends(get_db)):  # noqa: ARG001
+    def wrapper(current_user: CompanyUser = Depends(get_company_user_func), db: Session = Depends(get_db)):
         if not has_permission(current_user, permission_name):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { routesApi } from '../api/routes';
 import { Route as RouteIcon, Loader, MapPin } from 'lucide-react';
-import '../pages/DashboardPage.css';
 
 const RoutesPage = () => {
     const { data: routes, isLoading } = useQuery({
@@ -19,40 +18,30 @@ const RoutesPage = () => {
     }
 
     return (
-        <div className="fade-in">
-            <div className="page-header">
-                <h1 className="page-title">Routes</h1>
-                <p className="page-subtitle">View all available routes</p>
+        <div className="container py-4 fade-in">
+            <div className="mb-5">
+                <h1 className="h2 fw-bold text-dark mb-1">Routes</h1>
+                <p className="text-muted">View all available routes</p>
             </div>
 
             {routes && routes.length > 0 ? (
-                <div className="tickets-list">
+                <div className="d-flex flex-column gap-3">
                     {routes.map((route) => (
-                        <div key={route.id} className="card" style={{ padding: 'var(--spacing-xl)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-lg)' }}>
-                                <div style={{
-                                    width: '64px',
-                                    height: '64px',
-                                    borderRadius: 'var(--radius-lg)',
-                                    background: 'linear-gradient(135deg, var(--primary-100) 0%, var(--secondary-100) 100%)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    color: 'var(--primary-600)',
-                                    flexShrink: 0
-                                }}>
-                                    <RouteIcon size={32} />
+                        <div key={route.id} className="card shadow-sm border-0 p-4">
+                            <div className="d-flex align-items-center">
+                                <div className="p-3 rounded-circle bg-light border me-4">
+                                    <RouteIcon size={32} className="text-primary" />
                                 </div>
-                                <div style={{ flex: 1 }}>
-                                    <h3 style={{ marginBottom: 'var(--spacing-sm)', display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
-                                        <MapPin size={20} />
+                                <div>
+                                    <h3 className="h5 fw-bold mb-2 d-flex align-items-center gap-2">
+                                        <MapPin size={20} className="text-secondary" />
                                         {route.origin || 'Unknown'} → {route.destination || 'Unknown'}
                                     </h3>
-                                    <div style={{ color: 'var(--gray-600)', fontSize: '0.875rem' }}>
+                                    <div className="small text-muted mb-1">
                                         Route ID: {route.id?.slice(0, 8)}
                                     </div>
                                     {route.created_at && (
-                                        <div style={{ color: 'var(--gray-500)', fontSize: '0.75rem', marginTop: 'var(--spacing-xs)' }}>
+                                        <div className="small text-muted">
                                             Created: {new Date(route.created_at).toLocaleDateString()}
                                         </div>
                                     )}
@@ -62,10 +51,12 @@ const RoutesPage = () => {
                     ))}
                 </div>
             ) : (
-                <div className="empty-state card">
-                    <RouteIcon size={64} />
-                    <h3>No routes available</h3>
-                    <p>There are no routes configured yet</p>
+                <div className="card shadow-sm border-0 p-5 text-center">
+                    <div className="mb-3 text-muted opacity-50">
+                        <RouteIcon size={64} />
+                    </div>
+                    <h3 className="h5 fw-bold text-dark">No routes available</h3>
+                    <p className="text-muted">There are no routes configured yet</p>
                 </div>
             )}
         </div>

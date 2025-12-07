@@ -83,7 +83,7 @@ async def company_login_verify(
 
     otp_entry = (
         db.query(LoginOTP)
-        .filter(LoginOTP.company_user_id == company_user.id, LoginOTP.code == payload.code, LoginOTP.consumed == False)  # noqa: E712
+        .filter(LoginOTP.company_user_id == company_user.id, LoginOTP.code == payload.code, LoginOTP.consumed == False)
         .order_by(LoginOTP.expires_at.desc())
         .first()
     )

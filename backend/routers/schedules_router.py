@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import or_, and_
+from sqlalchemy import or_, and_, func
 from typing import List, Optional
 from datetime import datetime, date
 from database.dbs import get_db
@@ -114,7 +114,7 @@ def search_schedules(
         try:
             filter_date = datetime.strptime(date, "%Y-%m-%d").date()
             query = query.filter(
-                db.func.date(Schedule.departure_time) == filter_date
+                func.date(Schedule.departure_time) == filter_date
             )
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
@@ -133,7 +133,7 @@ def search_schedules(
             "bus_id": schedule.bus_id,
             "bus_plate_number": bus.plate_number if bus else None,
             "bus_capacity": bus.capacity if bus else None,
-            "available_seats": (bus.capacity - bus.available_seats) if bus else 0,
+            "available_seats": bus.available_seats if bus else 0, # Directly return remaining seats
             "route_id": route.id if route else None,
             "route_segment_id": schedule.route_segment_id,
             "origin": segment.start_station.name if segment and segment.start_station else None,

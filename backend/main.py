@@ -46,4 +46,4 @@ app.include_router(search_router.router)
 @app.get("/")
 def home():
     """The home route"""
-    return {"message": "Home Page"}
+    return {"message": "Home Route"}

@@ -6,17 +6,16 @@ import { schedulesApi } from '../api/schedules';
 import type { ScheduleSearchResult } from '../api/schedules';
 import { ticketsApi } from '../api/tickets';
 import { useAuthStore } from '../store/authStore';
-import { Search, Calendar, MapPin, Clock, Bus, Loader, AlertCircle } from 'lucide-react';
-import './DashboardPage.css';
+import { Search, Calendar, MapPin, Clock, Bus, AlertCircle } from 'lucide-react';
 
 const BookTicketPage = () => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const user = useAuthStore((state) => state.user);
-    
+
     const [selectedRoute, setSelectedRoute] = useState<string>('');
     const [selectedDate, setSelectedDate] = useState<string>('');
-    
+
     // Get all routes
     const { data: routes } = useQuery({
         queryKey: ['routes'],
@@ -65,7 +64,7 @@ const BookTicketPage = () => {
             return;
         }
 
-        if (confirm(`Book ticket for ${schedule.origin} → ${schedule.destination}?\nPrice: ${schedule.price} FCFA`)) {
+        if (confirm(`Book ticket for ${schedule.origin} → ${schedule.destination}?\nPrice: ${schedule.price} RWF`)) {
             bookTicketMutation.mutate({
                 user_id: user.id,
                 bus_id: schedule.bus_id,
@@ -79,30 +78,24 @@ const BookTicketPage = () => {
     const today = new Date().toISOString().split('T')[0];
 
     return (
-        <div className="fade-in">
-            <div className="page-header">
-                <h1 className="page-title">Book a Ticket</h1>
-                <p className="page-subtitle">Search for available schedules and book your journey</p>
+        <div className="container py-4">
+            <div className="mb-4">
+                <h1 className="h3 fw-bold text-dark">Book a Ticket</h1>
+                <p className="text-muted">Search for available schedules and book your journey</p>
             </div>
 
             {/* Search Form */}
-            <div className="card" style={{ padding: 'var(--spacing-xl)', marginBottom: 'var(--spacing-xl)' }}>
-                <div style={{ display: 'grid', gap: 'var(--spacing-lg)', gridTemplateColumns: '1fr 1fr auto' }}>
-                    <div>
-                        <label style={{ display: 'block', marginBottom: 'var(--spacing-sm)', fontWeight: 600 }}>
-                            <MapPin size={16} style={{ display: 'inline', marginRight: 'var(--spacing-xs)' }} />
+            <div className="card shadow-sm border-0 p-4 mb-4">
+                <div className="row g-3 align-items-end">
+                    <div className="col-md-5">
+                        <label className="form-label fw-bold small text-secondary">
+                            <MapPin size={16} className="d-inline me-1" />
                             Select Route
                         </label>
                         <select
+                            className="form-select"
                             value={selectedRoute}
                             onChange={(e) => setSelectedRoute(e.target.value)}
-                            style={{
-                                width: '100%',
-                                padding: 'var(--spacing-md)',
-                                borderRadius: 'var(--radius-md)',
-                                border: '1px solid var(--gray-300)',
-                                fontSize: '1rem',
-                            }}
                         >
                             <option value="">Choose a route...</option>
                             {routes?.map((route) => (
@@ -113,44 +106,27 @@ const BookTicketPage = () => {
                         </select>
                     </div>
 
-                    <div>
-                        <label style={{ display: 'block', marginBottom: 'var(--spacing-sm)', fontWeight: 600 }}>
-                            <Calendar size={16} style={{ display: 'inline', marginRight: 'var(--spacing-xs)' }} />
+                    <div className="col-md-5">
+                        <label className="form-label fw-bold small text-secondary">
+                            <Calendar size={16} className="d-inline me-1" />
                             Select Date
                         </label>
                         <input
                             type="date"
+                            className="form-control"
                             value={selectedDate}
                             min={today}
                             onChange={(e) => setSelectedDate(e.target.value)}
-                            style={{
-                                width: '100%',
-                                padding: 'var(--spacing-md)',
-                                borderRadius: 'var(--radius-md)',
-                                border: '1px solid var(--gray-300)',
-                                fontSize: '1rem',
-                            }}
                         />
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                    <div className="col-md-2">
                         <button
                             onClick={handleSearch}
                             disabled={!selectedRoute || !selectedDate || schedulesLoading}
-                            style={{
-                                padding: 'var(--spacing-md) var(--spacing-xl)',
-                                backgroundColor: 'var(--primary-600)',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: 'var(--radius-md)',
-                                cursor: (!selectedRoute || !selectedDate || schedulesLoading) ? 'not-allowed' : 'pointer',
-                                opacity: (!selectedRoute || !selectedDate || schedulesLoading) ? 0.6 : 1,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 'var(--spacing-sm)',
-                            }}
+                            className="btn btn-primary w-100 fw-bold d-flex align-items-center justify-content-center gap-2"
                         >
-                            <Search size={20} />
+                            {schedulesLoading ? <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> : <Search size={20} />}
                             {schedulesLoading ? 'Searching...' : 'Search'}
                         </button>
                     </div>
@@ -159,104 +135,98 @@ const BookTicketPage = () => {
 
             {/* Schedules List */}
             {schedulesLoading && (
-                <div className="loading-container">
-                    <Loader className="spinner" size={48} />
-                    <p>Searching schedules...</p>
+                <div className="text-center py-5">
+                    <div className="spinner-border text-primary" role="status">
+                        <span className="visually-hidden">Loading...</span>
+                    </div>
+                    <p className="mt-3 text-muted">Searching schedules...</p>
                 </div>
             )}
 
             {schedules && schedules.length > 0 && (
                 <div>
-                    <h2 style={{ marginBottom: 'var(--spacing-lg)', fontSize: '1.5rem' }}>
+                    <h2 className="h4 fw-bold mb-3 text-dark">
                         Available Schedules
                     </h2>
-                    <div style={{ display: 'grid', gap: 'var(--spacing-lg)' }}>
+                    <div className="d-flex flex-column gap-3">
                         {schedules.map((schedule) => (
-                            <div
-                                key={schedule.id}
-                                className="card"
-                                style={{
-                                    padding: 'var(--spacing-xl)',
-                                    border: '1px solid var(--gray-200)',
-                                }}
-                            >
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)', marginBottom: 'var(--spacing-md)' }}>
-                                            <MapPin size={20} style={{ color: 'var(--primary-600)' }} />
+                            <div key={schedule.id} className="card shadow-sm border-0 p-4">
+                                <div className="row align-items-center gy-4">
+                                    <div className="col-lg-8">
+                                        <div className="d-flex align-items-center gap-2 mb-3">
+                                            <MapPin size={20} className="text-primary" />
                                             <div>
-                                                <h3 style={{ fontSize: '1.25rem', fontWeight: 600, margin: 0 }}>
+                                                <h3 className="h6 fw-bold mb-0 text-dark">
                                                     {schedule.origin} → {schedule.destination}
                                                 </h3>
-                                                <div style={{ color: 'var(--gray-600)', fontSize: '0.875rem' }}>
+                                                <div className="small text-muted">
                                                     {schedule.company_name}
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--spacing-md)' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
-                                                <Clock size={16} style={{ color: 'var(--gray-500)' }} />
-                                                <div>
-                                                    <div style={{ fontSize: '0.875rem', color: 'var(--gray-600)' }}>Departure</div>
-                                                    <div style={{ fontWeight: 600 }}>
-                                                        {new Date(schedule.departure_time).toLocaleTimeString('en-US', {
-                                                            hour: '2-digit',
-                                                            minute: '2-digit',
-                                                        })}
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {schedule.arrival_time && (
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
-                                                    <Clock size={16} style={{ color: 'var(--gray-500)' }} />
+                                        <div className="row g-3">
+                                            <div className="col-sm-4">
+                                                <div className="d-flex align-items-center gap-2">
+                                                    <Clock size={16} className="text-secondary" />
                                                     <div>
-                                                        <div style={{ fontSize: '0.875rem', color: 'var(--gray-600)' }}>Arrival</div>
-                                                        <div style={{ fontWeight: 600 }}>
-                                                            {new Date(schedule.arrival_time).toLocaleTimeString('en-US', {
+                                                        <div className="small text-muted">Departure</div>
+                                                        <div className="fw-bold text-dark">
+                                                            {new Date(schedule.departure_time).toLocaleTimeString('en-US', {
                                                                 hour: '2-digit',
                                                                 minute: '2-digit',
                                                             })}
                                                         </div>
                                                     </div>
                                                 </div>
+                                            </div>
+
+                                            {schedule.arrival_time && (
+                                                <div className="col-sm-4">
+                                                    <div className="d-flex align-items-center gap-2">
+                                                        <Clock size={16} className="text-secondary" />
+                                                        <div>
+                                                            <div className="small text-muted">Arrival</div>
+                                                            <div className="fw-bold text-dark">
+                                                                {new Date(schedule.arrival_time).toLocaleTimeString('en-US', {
+                                                                    hour: '2-digit',
+                                                                    minute: '2-digit',
+                                                                })}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             )}
 
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}>
-                                                <Bus size={16} style={{ color: 'var(--gray-500)' }} />
-                                                <div>
-                                                    <div style={{ fontSize: '0.875rem', color: 'var(--gray-600)' }}>Bus</div>
-                                                    <div style={{ fontWeight: 600 }}>{schedule.bus_plate_number}</div>
+                                            <div className="col-sm-4">
+                                                <div className="d-flex align-items-center gap-2">
+                                                    <Bus size={16} className="text-secondary" />
+                                                    <div>
+                                                        <div className="small text-muted">Bus</div>
+                                                        <div className="fw-bold text-dark">{schedule.bus_plate_number}</div>
+                                                    </div>
                                                 </div>
                                             </div>
 
-                                            <div>
-                                                <div style={{ fontSize: '0.875rem', color: 'var(--gray-600)' }}>Available Seats</div>
-                                                <div style={{ fontWeight: 600, color: schedule.available_seats > 0 ? 'var(--success-600)' : 'var(--error-600)' }}>
-                                                    {schedule.available_seats} / {schedule.bus_capacity}
+                                            <div className="col-sm-4">
+                                                <div className="d-flex align-items-center gap-2">
+                                                    <div className="small text-muted">Seats:</div>
+                                                    <div className={`fw-bold ${schedule.available_seats > 0 ? 'text-success' : 'text-danger'}`}>
+                                                        {schedule.available_seats} / {schedule.bus_capacity}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div style={{ textAlign: 'right', marginLeft: 'var(--spacing-xl)' }}>
-                                        <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--primary-600)', marginBottom: 'var(--spacing-md)' }}>
-                                            {schedule.price} FCFA
+                                    <div className="col-lg-4 text-lg-end text-center border-start-lg ps-lg-4">
+                                        <div className="h3 fw-bold text-primary mb-3">
+                                            {schedule.price} RWF
                                         </div>
                                         <button
                                             onClick={() => handleBookTicket(schedule)}
                                             disabled={schedule.available_seats <= 0 || bookTicketMutation.isPending}
-                                            style={{
-                                                padding: 'var(--spacing-md) var(--spacing-xl)',
-                                                backgroundColor: schedule.available_seats > 0 ? 'var(--primary-600)' : 'var(--gray-400)',
-                                                color: 'white',
-                                                border: 'none',
-                                                borderRadius: 'var(--radius-md)',
-                                                cursor: schedule.available_seats > 0 ? 'pointer' : 'not-allowed',
-                                                fontWeight: 600,
-                                                fontSize: '1rem',
-                                            }}
+                                            className={`btn ${schedule.available_seats > 0 ? 'btn-primary' : 'btn-secondary'} w-100 fw-bold`}
                                         >
                                             {bookTicketMutation.isPending ? 'Booking...' : schedule.available_seats > 0 ? 'Book Now' : 'Sold Out'}
                                         </button>
@@ -269,18 +239,22 @@ const BookTicketPage = () => {
             )}
 
             {schedules && schedules.length === 0 && selectedRoute && selectedDate && (
-                <div className="empty-state card">
-                    <AlertCircle size={64} />
-                    <h3>No schedules found</h3>
-                    <p>No available schedules for the selected route and date. Please try a different date.</p>
+                <div className="card shadow-sm border-0 p-5 text-center">
+                    <div className="mb-3 text-muted">
+                        <AlertCircle size={48} />
+                    </div>
+                    <h3 className="h5 fw-bold text-dark">No schedules found</h3>
+                    <p className="text-muted">No available schedules for the selected route and date. Please try a different date.</p>
                 </div>
             )}
 
             {!selectedRoute || !selectedDate ? (
-                <div className="empty-state card">
-                    <Search size={64} />
-                    <h3>Search for schedules</h3>
-                    <p>Select a route and date to search for available schedules</p>
+                <div className="card shadow-sm border-0 p-5 text-center mt-4">
+                    <div className="mb-3 text-muted opacity-50">
+                        <Search size={48} />
+                    </div>
+                    <h3 className="h5 fw-bold text-dark">Search for schedules</h3>
+                    <p className="text-muted">Select a route and date to search for available schedules</p>
                 </div>
             ) : null}
         </div>

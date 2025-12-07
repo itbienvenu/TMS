@@ -81,10 +81,6 @@ def generate_otp_code(length: int = 6) -> str:
 def send_email(to_email: str, subject: str, body: str):
     """
     Send an email using Gmail SMTP.
-
-    Requires the following env vars:
-    - GMAIL_SMTP_USER: your Gmail address
-    - GMAIL_SMTP_PASSWORD: an App Password (not your normal Gmail password)
     """
     # Mock email sending if credentials are not set or for development
     if not GMAIL_SMTP_USER or not GMAIL_SMTP_PASSWORD:

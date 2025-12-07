@@ -1,5 +1,6 @@
 Test credentials
 ===============
+
 Regular users (customer portal)
 Email: john.doe@example.com
 Password: password123
@@ -7,6 +8,7 @@ Email: jane.smith@example.com
 Password: password123
 
 ===============
+
 Company users (company dashboard)
 Company: Express Bus Lines
 Login Email: admin@expressbus.com
@@ -15,11 +17,14 @@ OTP Email: alice@expressbus.com
 
 ===============
 ===============
+
 Company: Comfort Travel
 Login Email: admin@comforttravel.com
 Password: password123
 OTP Email: bob@comforttravel.com
+
 ===============
+
 Super admin
 Login Email: admin@ticketing.com
 Password: password123

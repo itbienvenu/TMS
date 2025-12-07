@@ -6,10 +6,10 @@ from pydantic.root_model import RootModel
 
 
 class TicketCreate(BaseModel):
-    user_id: UUID = Field(..., description="ID of the user booking the ticket")
-    bus_id: UUID = Field(..., description="ID of the bus")
-    route_id: UUID = Field(..., description="ID of the route")
-    schedule_id: Optional[UUID] = Field(None, description="ID of the schedule (optional)")
+    user_id: str = Field(..., description="ID of the user booking the ticket")
+    bus_id: str = Field(..., description="ID of the bus")
+    route_id: str = Field(..., description="ID of the route")
+    schedule_id: Optional[str] = Field(None, description="ID of the schedule (optional)")
 
   
 
@@ -22,7 +22,7 @@ class RouteInfo(BaseModel):
     price: Optional[float] = None
 
 class TicketResponse(BaseModel):
-    id: UUID
+    id: str
     user_id: Optional[str] = None
     full_name:Optional[str] = None
     qr_code: str

@@ -20,7 +20,7 @@ function App() {
 
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
+      <div className="min-vh-100 bg-light text-body">
         <Navbar />
         <Routes>
           <Route path="/" element={<Home />} />

@@ -3,6 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import api from '../lib/api';
 import { useAuthStore } from '../store/authStore';
 import { Lock, Mail, AlertCircle } from 'lucide-react';
+import AuthLayout from '../components/layout/AuthLayout';
 
 const Login = () => {
     const navigate = useNavigate();
@@ -22,16 +23,19 @@ const Login = () => {
 
         try {
             const res = await api.post('/login', {
-                username: email, // Backend expects 'username' for OAuth2PasswordRequestForm usually, but let's check schema
-                password: password,
-                user_type: 'user' // Assuming backend differentiates or we use specific endpoint
+                email: email,
+                password_hash: password,
+                user_type: 'user'
             });
 
-            // Note: The backend login_router.py uses `LoginUser` schema: { email, password, user_type }
-            // But `login_user` function might return different structure.
-            // Let's assume standard JWT response: { access_token, token_type, user: {...} }
+            const { access_token } = res.data;
+            // Set token first to allow authenticated requests
+            localStorage.setItem('access_token', access_token);
 
-            const { access_token, user } = res.data;
+            // Fetch user details immediately to populate store
+            const userRes = await api.get('/me');
+            const user = userRes.data;
+
             login(access_token, user);
             navigate(from, { replace: true });
 
@@ -44,68 +48,70 @@ const Login = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4">
-            <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-                <div className="text-center mb-8">
-                    <h2 className="text-3xl font-bold text-gray-900">Welcome Back</h2>
-                    <p className="text-gray-600 mt-2">Sign in to your account to continue</p>
-                </div>
-
-                {error && (
-                    <div className="bg-red-50 text-red-600 p-3 rounded-md mb-6 flex items-center gap-2 text-sm">
-                        <AlertCircle className="h-4 w-4" />
-                        {error}
-                    </div>
-                )}
-
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                        <div className="relative">
-                            <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                            <input
-                                type="email"
-                                required
-                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="you@example.com"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                            />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                        <div className="relative">
-                            <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                            <input
-                                type="password"
-                                required
-                                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                placeholder="••••••••"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                            />
-                        </div>
-                    </div>
-
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition duration-200 disabled:opacity-70"
-                    >
-                        {loading ? 'Signing in...' : 'Sign In'}
-                    </button>
-                </form>
-
-                <div className="mt-6 text-center text-sm text-gray-600">
-                    Don't have an account?{' '}
-                    <Link to="/register" className="text-blue-600 hover:text-blue-800 font-medium">
-                        Sign up
-                    </Link>
-                </div>
+        <AuthLayout>
+            <div className="text-center mb-4">
+                <h2 className="h3 fw-bold text-dark">Welcome Back</h2>
+                <p className="text-muted mt-2">Sign in to your account to continue</p>
             </div>
-        </div>
+
+            {error && (
+                <div className="alert alert-danger d-flex align-items-center gap-2 small" role="alert">
+                    <AlertCircle size={16} />
+                    {error}
+                </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="d-flex flex-column gap-3">
+                <div>
+                    <label className="form-label fw-medium small text-secondary">Email Address</label>
+                    <div className="input-group">
+                        <span className="input-group-text bg-light border-end-0">
+                            <Mail className="text-secondary" size={18} />
+                        </span>
+                        <input
+                            type="email"
+                            required
+                            className="form-control border-start-0 ps-0"
+                            placeholder="you@example.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                        />
+                    </div>
+                </div>
+
+                <div>
+                    <label className="form-label fw-medium small text-secondary">Password</label>
+                    <div className="input-group">
+                        <span className="input-group-text bg-light border-end-0">
+                            <Lock className="text-secondary" size={18} />
+                        </span>
+                        <input
+                            type="password"
+                            required
+                            className="form-control border-start-0 ps-0"
+                            placeholder="••••••••"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                        />
+                    </div>
+                </div>
+
+                <button
+                    type="submit"
+                    disabled={loading}
+                    className="btn btn-primary w-100 fw-bold py-2 mt-2"
+                >
+                    {loading ? 'Signing in...' : 'Sign In'}
+                </button>
+            </form>
+
+            <div className="mt-4 text-center small text-muted">
+                Don't have an account?{' '}
+                <Link to="/register" className="text-primary text-decoration-none fw-bold">
+                    Sign up
+                </Link>
+            </div>
+        </AuthLayout>
     );
 };
 

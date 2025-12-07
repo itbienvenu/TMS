@@ -12,34 +12,34 @@ const Navbar = () => {
     };
 
     return (
-        <nav className="bg-white shadow-sm border-b border-gray-200">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between h-16">
-                    <div className="flex items-center">
-                        <Link to="/" className="flex items-center gap-2">
-                            <Bus className="h-8 w-8 text-blue-600" />
-                            <span className="text-xl font-bold text-gray-900">BusTicket</span>
+        <nav className="navbar navbar-expand-lg navbar-light bg-white shadow-sm border-bottom">
+            <div className="container">
+                <div className="d-flex justify-content-between align-items-center w-100">
+                    <div className="d-flex align-items-center">
+                        <Link to="/" className="d-flex align-items-center gap-2 text-decoration-none">
+                            <Bus className="text-primary" size={32} />
+                            <span className="h5 mb-0 font-weight-bold text-dark">BusTicket</span>
                         </Link>
                     </div>
 
-                    <div className="flex items-center gap-4">
+                    <div className="d-flex align-items-center gap-3">
                         {isAuthenticated ? (
                             <>
-                                <div className="flex items-center gap-2 text-gray-700">
-                                    <User className="h-5 w-5" />
-                                    <span className="hidden md:block font-medium">{user?.full_name}</span>
+                                <div className="d-flex align-items-center gap-2 text-secondary">
+                                    <User size={20} />
+                                    <span className="d-none d-md-block font-weight-medium">{user?.full_name}</span>
                                 </div>
                                 <Link
                                     to="/my-tickets"
-                                    className="text-gray-600 hover:text-blue-600 font-medium text-sm"
+                                    className="text-secondary text-decoration-none font-weight-medium small"
                                 >
                                     My Tickets
                                 </Link>
                                 <button
                                     onClick={handleLogout}
-                                    className="flex items-center gap-1 text-red-600 hover:text-red-800 font-medium text-sm"
+                                    className="btn btn-link text-danger text-decoration-none font-weight-medium small p-0 d-flex align-items-center gap-1"
                                 >
-                                    <LogOut className="h-4 w-4" />
+                                    <LogOut size={16} />
                                     Logout
                                 </button>
                             </>
@@ -47,13 +47,13 @@ const Navbar = () => {
                             <>
                                 <Link
                                     to="/login"
-                                    className="text-gray-600 hover:text-blue-600 font-medium"
+                                    className="text-secondary text-decoration-none font-weight-medium"
                                 >
                                     Sign In
                                 </Link>
                                 <Link
                                     to="/register"
-                                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition"
+                                    className="btn btn-primary"
                                 >
                                     Sign Up
                                 </Link>

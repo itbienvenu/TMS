@@ -28,7 +28,6 @@ def seed_database():
     try:
         print("🌱 Starting database seeding...")
         
-        # Clear existing data (optional - comment out if you want to keep existing data)
         # Order matters due to foreign key constraints
         print("🗑️  Clearing existing data...")
         db.execute(text("DELETE FROM payments"))

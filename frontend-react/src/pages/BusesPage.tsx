@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { busesApi } from '../api/buses';
 import { Bus as BusIcon, Loader } from 'lucide-react';
-import '../pages/DashboardPage.css';
 
 const BusesPage = () => {
     const { data: buses, isLoading } = useQuery({
@@ -19,39 +18,46 @@ const BusesPage = () => {
     }
 
     return (
-        <div className="fade-in">
-            <div className="page-header">
-                <h1 className="page-title">Available Buses</h1>
-                <p className="page-subtitle">Browse all available buses</p>
+        <div className="container py-4 fade-in">
+            <div className="mb-5">
+                <h1 className="h2 fw-bold text-dark mb-1">Available Buses</h1>
+                <p className="text-muted">Browse all available buses</p>
             </div>
 
             {buses && buses.length > 0 ? (
-                <div className="buses-grid">
+                <div className="row g-4">
                     {buses.map((bus) => (
-                        <div key={bus.id} className="bus-card card">
-                            <div className="bus-icon">
-                                <BusIcon size={32} />
-                            </div>
-                            <div className="bus-info">
-                                <div className="bus-plate">{bus.plate_number}</div>
-                                <div className="bus-company">{bus.company?.name || 'Unknown Company'}</div>
-                                <div className="bus-seats">
-                                    <strong>{bus.available_seats}</strong> / {bus.capacity} seats available
-                                </div>
-                                <div style={{ marginTop: 'var(--spacing-md)' }}>
-                                    <span className={`badge ${bus.available_seats > 0 ? 'badge-success' : 'badge-error'}`}>
-                                        {bus.available_seats > 0 ? 'Available' : 'Full'}
-                                    </span>
+                        <div key={bus.id} className="col-md-6 col-lg-4">
+                            <div className="card shadow-sm border-0 h-100">
+                                <div className="card-body text-center">
+                                    <div className="d-flex justify-content-center mb-3">
+                                        <div className="p-3 rounded-circle bg-light border">
+                                            <BusIcon size={32} className="text-primary" />
+                                        </div>
+                                    </div>
+                                    <h5 className="card-title fw-bold mb-1">{bus.plate_number}</h5>
+                                    <p className="card-text text-muted mb-3">{bus.company?.name || 'Unknown Company'}</p>
+                                    <div className="mb-3">
+                                        <span className="fw-bold text-dark">{bus.available_seats}</span>
+                                        <span className="text-muted"> / {bus.capacity} seats available</span>
+                                    </div>
+                                    <div>
+                                        <span className={`badge rounded-pill bg-${bus.available_seats > 0 ? 'success' : 'danger'}`}>
+                                            {bus.available_seats > 0 ? 'Available' : 'Full'}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     ))}
                 </div>
             ) : (
-                <div className="empty-state card">
-                    <BusIcon size={64} />
-                    <h3>No buses available</h3>
-                    <p>There are no buses in the system yet</p>
+                <div className="text-center py-5">
+                    <div className="mb-3 text-muted opacity-50">
+                        <BusIcon size={64} />
+                    </div>
+                    <h3 className="h5 fw-bold text-dark">No buses available</h3>
+                    <p className="text-muted">There are no buses in the system yet</p>
                 </div>
             )}
         </div>
