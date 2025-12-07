@@ -6,10 +6,44 @@ import uuid
 
 from database.dbs import get_db
 from database.models import Driver, User, Bus
-from schemas.DriverScheme import DriverCreate, DriverResponse, DriverUpdate
-from methods.functions import get_current_user, get_password_hash
+from schemas.DriverScheme import DriverCreate, DriverResponse, DriverUpdate, DriverLogin
+from methods.functions import get_current_user, get_password_hash, verify_password, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
+from datetime import timedelta
 
 router = APIRouter(prefix="/api/v1/drivers", tags=['Drivers Management'])
+
+@router.post("/login")
+async def login_driver(payload: DriverLogin, db: Session = Depends(get_db)):
+    """
+    Driver login to mobile app.
+    Returns access token.
+    """
+    driver = db.query(Driver).filter(Driver.email == payload.email).first()
+    if not driver:
+        # Avoid user enumeration by generic message, though for MVP explicit is fine.
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    if not verify_password(payload.password, driver.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+        
+    # Create Token
+    token = create_access_token(
+        data={
+            "sub": str(driver.id),
+            "company_id": str(driver.company_id),
+            "user_type": "driver",
+            "bus_id": str(driver.bus_id) if driver.bus_id else None
+        },
+        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
+    
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user_type": "driver",
+        "driver_name": driver.full_name,
+        "bus_id": driver.bus_id
+    }
 
 @router.post("/", response_model=DriverResponse, status_code=status.HTTP_201_CREATED)
 async def create_driver(
