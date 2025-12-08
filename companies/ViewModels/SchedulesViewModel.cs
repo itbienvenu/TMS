@@ -195,9 +195,9 @@ public partial class SchedulesViewModel : ViewModelBase
     [RelayCommand]
     private async Task SaveScheduleAsync()
     {
-        if (SelectedBus == null || SelectedRouteSegment == null)
+        if (SelectedBus == null)
         {
-            ErrorMessage = "Please select bus and route segment";
+            ErrorMessage = "Please select a bus";
             return;
         }
 
@@ -229,7 +229,7 @@ public partial class SchedulesViewModel : ViewModelBase
                 var newSchedule = new ScheduleCreate
                 {
                     BusId = SelectedBus.Id,
-                    RouteSegmentId = SelectedRouteSegment.Id,
+                    RouteSegmentId = SelectedRouteSegment?.Id, // Optional
                     DepartureTime = departure,
                     ArrivalTime = arrival
                 };

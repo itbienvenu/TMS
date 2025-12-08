@@ -41,6 +41,7 @@
                                         <TextBlock Grid.Column="2" Text="{Binding Price, StringFormat='{}{0:N0} RWF'}" VerticalAlignment="Center" Foreground="{StaticResource PrimaryBlueBrush}" FontWeight="Bold"/>
                                         
                                         <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="5" HorizontalAlignment="Right">
+                                            <Button Classes="Ghost" Content="📍" Padding="8" Click="OnManageSegments" ToolTip.Tip="Manage Segments"/>
                                             <Button Classes="Ghost" Content="✏️" Padding="8" Click="OnEditRoute" ToolTip.Tip="Edit"/>
                                             <Button Classes="Ghost" Content="🗑️" Padding="8" Click="OnDeleteRoute" Foreground="Red" ToolTip.Tip="Delete"/>
                                         </StackPanel>
@@ -95,6 +96,64 @@
                         <Button Content="Save Route" Command="{Binding SaveRouteCommand}"/>
                     </StackPanel>
                 </StackPanel>
+            </Border>
+
+            <!-- Segments Management Card -->
+            <Border Grid.Column="1" Classes="Card" 
+                    IsVisible="{Binding IsManagingSegments}" Width="400" Margin="10,0,0,0">
+                <Grid RowDefinitions="Auto,*,Auto">
+                    <!-- Header -->
+                    <StackPanel Grid.Row="0" Spacing="10" Margin="0,0,0,15">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Text="Route Segments" FontSize="18" FontWeight="Bold" Foreground="{StaticResource DarkTextBrush}"/>
+                            <Button Classes="Ghost" Content="❌" Command="{Binding CloseSegmentsCommand}" HorizontalAlignment="Right"/>
+                        </Grid>
+                        <TextBlock Text="{Binding SelectedRoute.Origin, StringFormat='Route: {0} ➝ ...'}" FontSize="12" Foreground="{StaticResource LightTextBrush}"/>
+                    </StackPanel>
+
+                    <!-- Segments List -->
+                    <ScrollViewer Grid.Row="1" Margin="0,0,0,15">
+                        <ItemsControl ItemsSource="{Binding Segments}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="5">
+                                        <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                                            <TextBlock Grid.Column="0" Text="{Binding StopOrder}" FontWeight="Bold" Margin="0,0,10,0" VerticalAlignment="Center" Foreground="{StaticResource LightTextBrush}"/>
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding StartStationName}" FontSize="10" Foreground="Gray"/>
+                                                <TextBlock Text="⬇" FontSize="10" HorizontalAlignment="Center"/>
+                                                <TextBlock Text="{Binding EndStationName}" FontSize="10" Foreground="Gray"/>
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="2" Text="{Binding Price, StringFormat='{}{0:N0}'}" Margin="10,0" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                            <Button Grid.Column="3" Classes="Ghost" Content="🗑️" Click="OnDeleteSegment" Foreground="Red" Padding="5"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <!-- Add Segment Form -->
+                    <StackPanel Grid.Row="2" Spacing="10" Background="{StaticResource BackgroundBrush}">
+                        <TextBlock Text="Add New Segment" FontWeight="SemiBold"/>
+                        
+                        <Grid ColumnDefinitions="*,5,*" RowDefinitions="Auto,Auto">
+                            <ComboBox Grid.Row="0" Grid.Column="0" ItemsSource="{Binding Stations}" SelectedItem="{Binding NewSegmentStartStation}" PlaceholderText="Start Station" HorizontalAlignment="Stretch">
+                                <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Name}"/></DataTemplate></ComboBox.ItemTemplate>
+                            </ComboBox>
+                            <ComboBox Grid.Row="0" Grid.Column="2" ItemsSource="{Binding Stations}" SelectedItem="{Binding NewSegmentEndStation}" PlaceholderText="End Station" HorizontalAlignment="Stretch">
+                                <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Name}"/></DataTemplate></ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </Grid>
+
+                        <Grid ColumnDefinitions="*,5,*">
+                             <NumericUpDown Grid.Column="0" Value="{Binding NewSegmentPrice}" Minimum="0" FormatString="N0" Watermark="Price"/>
+                             <NumericUpDown Grid.Column="2" Value="{Binding NewSegmentStopOrder}" Minimum="0" FormatString="0" Watermark="Order"/>
+                        </Grid>
+
+                        <Button Content="Add Segment" Command="{Binding AddSegmentCommand}" HorizontalAlignment="Stretch"/>
+                    </StackPanel>
+                </Grid>
             </Border>
         </Grid>
     </Grid>

@@ -5,7 +5,7 @@ namespace CompanyDashboard.Config;
 public static class ApiConfig
 {
     /// <summary>
-    /// Base URL for the API. Change this value to point to  backend server.
+    /// Base URL for the API. http://127.0.0.1:8000/Change this value to point to  backend server.
     /// </summary>
     public const string BaseUrl = "http://localhost:8000";
     
@@ -14,4 +14,3 @@ public static class ApiConfig
     /// </summary>
     public const string ApiBasePath = $"{BaseUrl}/api/v1";
 }
-

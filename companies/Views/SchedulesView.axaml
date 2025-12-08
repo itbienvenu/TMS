@@ -73,23 +73,22 @@
                         </ComboBox>
                     </StackPanel>
 
-                    <StackPanel Spacing="5">
-                     <TextBlock Text="Route Segment" Foreground="{StaticResource LightTextBrush}" FontSize="12"/>
-                     <Grid ColumnDefinitions="*,Auto">
-                         <ComboBox Grid.Column="0" ItemsSource="{Binding RouteSegments}" 
+                     <StackPanel Spacing="5">
+                         <TextBlock Text="Route Segment (Optional)" Foreground="{StaticResource LightTextBrush}" FontSize="12"/>
+                         <ComboBox ItemsSource="{Binding RouteSegments}" 
                                    SelectedItem="{Binding SelectedRouteSegment}"
-                                   HorizontalAlignment="Stretch" PlaceholderText="Select Route Segment">
+                                   HorizontalAlignment="Stretch" PlaceholderText="Select Segment (or leave empty)">
                              <ComboBox.ItemTemplate>
                                  <DataTemplate>
-                                     <TextBlock Text="{Binding Id}"/>
+                                     <StackPanel Orientation="Horizontal" Spacing="5">
+                                         <TextBlock Text="{Binding StartStationName}"/>
+                                         <TextBlock Text="➡"/>
+                                         <TextBlock Text="{Binding EndStationName}"/>
+                                     </StackPanel>
                                  </DataTemplate>
                              </ComboBox.ItemTemplate>
                          </ComboBox>
-                         <Button Grid.Column="1" Classes="Outline" Content="+" Margin="5,0,0,0" 
-                                 Command="{Binding CreateRouteSegmentCommand}"
-                                 ToolTip.Tip="Create Default Segment for Route"/>
-                     </Grid>
-                </StackPanel>
+                    </StackPanel>
 
                     <StackPanel Spacing="5">
                         <TextBlock Text="Bus" Foreground="{StaticResource LightTextBrush}" FontSize="12"/>

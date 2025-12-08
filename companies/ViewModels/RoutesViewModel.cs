@@ -13,6 +13,7 @@ public partial class RoutesViewModel : ViewModelBase
 {
     private readonly RouteService _routeService;
     private readonly StationService _stationService;
+    private readonly RouteSegmentService _segmentService;
 
     [ObservableProperty]
     private ObservableCollection<Route> _routes = new();
@@ -47,11 +48,32 @@ public partial class RoutesViewModel : ViewModelBase
     [ObservableProperty]
     private string _errorMessage = string.Empty;
 
+    // Segment Management
+    [ObservableProperty]
+    private bool _isManagingSegments = false;
+
+    [ObservableProperty]
+    private ObservableCollection<RouteSegment> _segments = new();
+
+    [ObservableProperty]
+    private BusStation? _newSegmentStartStation;
+
+    [ObservableProperty]
+    private BusStation? _newSegmentEndStation;
+
+    [ObservableProperty]
+    private double _newSegmentPrice;
+
+    [ObservableProperty]
+    private int _newSegmentStopOrder;
+
+
     public RoutesViewModel()
     {
         var token = TokenStorage.AccessToken;
         _routeService = new RouteService(token);
         _stationService = new StationService(token);
+        _segmentService = new RouteSegmentService(token);
         LoadDataAsync().ConfigureAwait(false);
     }
 
@@ -184,6 +206,101 @@ public partial class RoutesViewModel : ViewModelBase
     private async Task RefreshAsync()
     {
         await LoadDataAsync();
+    }
+    [RelayCommand]
+    private async Task ManageSegmentsAsync(Route route)
+    {
+        SelectedRoute = route;
+        IsManagingSegments = true;
+        IsEditMode = false;
+        await LoadSegmentsAsync();
+    }
+
+    private async Task LoadSegmentsAsync()
+    {
+        if (SelectedRoute == null) return;
+        IsLoading = true;
+        try
+        {
+            var segments = await _segmentService.GetSegmentsByRouteAsync(SelectedRoute.Id);
+            Segments = new ObservableCollection<RouteSegment>(segments.OrderBy(s => s.StopOrder));
+        }
+        catch (Exception ex)
+        {
+             ErrorMessage = $"Error loading segments: {ex.Message}";
+        }
+        finally
+        {
+             IsLoading = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task AddSegmentAsync()
+    {
+        if (SelectedRoute == null || NewSegmentStartStation == null || NewSegmentEndStation == null || NewSegmentPrice <= 0)
+        {
+             ErrorMessage = "Please fill all segment fields.";
+             return;
+        }
+
+        IsLoading = true;
+        try
+        {
+            var newSegment = new RouteSegmentCreate
+            {
+                RouteId = SelectedRoute.Id,
+                StartStationId = NewSegmentStartStation.Id,
+                EndStationId = NewSegmentEndStation.Id,
+                Price = NewSegmentPrice,
+                StopOrder = NewSegmentStopOrder
+            };
+
+            await _segmentService.CreateSegmentAsync(newSegment);
+            
+            // Reset fields
+            NewSegmentStartStation = null;
+            NewSegmentEndStation = null;
+            NewSegmentPrice = 0;
+            NewSegmentStopOrder = 0;
+
+            await LoadSegmentsAsync();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error adding segment: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task DeleteSegmentAsync(RouteSegment segment)
+    {
+         IsLoading = true;
+         try
+         {
+             await _segmentService.DeleteSegmentAsync(segment.Id);
+             await LoadSegmentsAsync();
+         }
+         catch (Exception ex)
+         {
+             ErrorMessage = $"Error deleting segment: {ex.Message}";
+         }
+         finally
+         {
+             IsLoading = false;
+         }
+    }
+
+    [RelayCommand]
+    private void CloseSegments()
+    {
+        IsManagingSegments = false;
+        SelectedRoute = null;
+        Segments.Clear();
     }
 }
 

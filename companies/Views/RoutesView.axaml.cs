@@ -32,5 +32,21 @@ public partial class RoutesView : UserControl
             await vm.DeleteRouteCommand.ExecuteAsync(route);
         }
     }
+
+    private async void OnManageSegments(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (DataContext is RoutesViewModel vm && sender is Button btn && btn.DataContext is Route route)
+        {
+            await vm.ManageSegmentsCommand.ExecuteAsync(route);
+        }
+    }
+
+    private async void OnDeleteSegment(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+         if (DataContext is RoutesViewModel vm && sender is Button btn && btn.DataContext is RouteSegment segment)
+         {
+             await vm.DeleteSegmentCommand.ExecuteAsync(segment);
+         }
+    }
 }
 
