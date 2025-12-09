@@ -11,7 +11,12 @@ const api = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('access_token');
+        let token = null;
+        try {
+            token = localStorage.getItem('access_token');
+        } catch (error) {
+            console.warn("Could not read token from storage", error);
+        }
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -28,8 +33,10 @@ api.interceptors.response.use(
     (error) => {
         if (error.response?.status === 401) {
             // Clear token and redirect to login
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('user');
+            try {
+                localStorage.removeItem('access_token');
+                localStorage.removeItem('user');
+            } catch (e) { /* ignore */ }
             window.location.href = '/login';
         }
         return Promise.reject(error);

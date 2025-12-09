@@ -21,22 +21,37 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>((set) => ({
     user: null,
-    token: localStorage.getItem('access_token'),
-    isAuthenticated: !!localStorage.getItem('access_token'),
+    token: null, // Initialize null, check in strict safe way if needed or verify in checkAuth only
+    isAuthenticated: false,
     isLoading: false,
 
     login: (token, user) => {
-        localStorage.setItem('access_token', token);
+        try {
+            localStorage.setItem('access_token', token);
+        } catch (e) {
+            console.error("Storage access denied", e);
+        }
         set({ token, user, isAuthenticated: true });
     },
 
     logout: () => {
-        localStorage.removeItem('access_token');
+        try {
+            localStorage.removeItem('access_token');
+        } catch (e) {
+            console.error("Storage access denied", e);
+        }
         set({ token: null, user: null, isAuthenticated: false });
     },
 
     checkAuth: async () => {
-        const token = localStorage.getItem('access_token');
+        let token = null;
+        try {
+            token = localStorage.getItem('access_token');
+        } catch (e) {
+            console.error("Storage access denied", e);
+            // If we can't read storage, we assume not logged in or handle gracefully
+        }
+
         if (!token) {
             set({ isAuthenticated: false, user: null });
             return;
@@ -48,7 +63,9 @@ export const useAuthStore = create<AuthState>((set) => ({
             set({ user: response.data, isAuthenticated: true });
         } catch (error) {
             console.error("Auth check failed", error);
-            localStorage.removeItem('access_token');
+            try {
+                localStorage.removeItem('access_token');
+            } catch (e) { /* ignore */ }
             set({ token: null, user: null, isAuthenticated: false });
         } finally {
             set({ isLoading: false });

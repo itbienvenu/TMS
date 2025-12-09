@@ -15,7 +15,7 @@ class BusStationCreate(BusStationBase):
 class BusStationResponse(BusStationBase):
     id: str
     created_at: datetime
-    company_id: str
+    company_id: Optional[str] = None
 
     class Config:
         from_attributes = True

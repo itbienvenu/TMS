@@ -152,7 +152,7 @@ public class ScheduleCreate
     public string BusId { get; set; } = string.Empty;
     
     [JsonPropertyName("route_segment_id")]
-    public string? RouteSegmentId { get; set; }
+    public string RouteSegmentId { get; set; } = string.Empty;
     
     [JsonPropertyName("departure_time")]
     public DateTime DepartureTime { get; set; }

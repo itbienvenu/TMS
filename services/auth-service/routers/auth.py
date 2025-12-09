@@ -20,6 +20,7 @@ from schemas.LoginRegisteScheme import RegisterUser, LoginUser, UpdateUser, User
 # In main.py we can override get_db dependency or setup a global engine in common/database.py
 # For simplicity, we wil import get_db from a local dependency wrapper.
 from common.database import get_db_engine, get_db_session
+from database.models import CompanyUser, LoginOTP
 
 # Simple Dependency Wrapper
 def get_db():
@@ -66,6 +67,8 @@ async def company_login_start(
     )
     db.add(otp_entry)
     db.commit()
+
+    print(f"DEBUG OTP: {code}")  # For development testing
 
     if company_user.email:
         send_email(

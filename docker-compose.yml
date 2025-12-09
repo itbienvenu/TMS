@@ -1,42 +1,152 @@
-version: "3.9"  # latest supported format
+version: '3.8'
+
+services:
+  gateway:
+    build:
+      context: ./gateway
+    image: bienvenugashema/ticketing-gateway:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - auth-service
+      - user-service
+      - company-service
+      - ticketing-service
+      - qr-service
+      - payment-service
+    networks:
+      - ticketing-net
+
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: itbienvenu
+      POSTGRES_PASSWORD: 123
+      POSTGRES_DB: ticketing_system
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ticketing-net
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6380:6379"
+    networks:
+      - ticketing-net
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: services/auth-service/Dockerfile
+    image: bienvenugashema/ticketing-auth-service:latest
+    environment:
+      - DATABASE_URL=postgresql://itbienvenu:123@postgres:5432/ticketing_system
+      - JWT_SECRET=supersecretkey
+      - SECRET_KEY=supersecretkey
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+      - GMAIL_SMTP_USER=bienvenugashema@gmail.com
+      - GMAIL_SMTP_PASSWORD=dpev kuni hoea erpu
+    ports:
+      - "8001:8001"
+    depends_on:
+      - postgres
+    networks:
+      - ticketing-net
+
+  user-service:
+    build:
+      context: .
+      dockerfile: services/user-service/Dockerfile
+    image: bienvenugashema/ticketing-user-service:latest
+    environment:
+      - DATABASE_URL=postgresql://itbienvenu:123@postgres:5432/ticketing_system
+    ports:
+      - "8002:8002"
+    depends_on:
+      - postgres
+    networks:
+      - ticketing-net
+
+  company-service:
+    build:
+      context: .
+      dockerfile: services/company-service/Dockerfile
+    image: bienvenugashema/ticketing-company-service:latest
+    environment:
+      - DATABASE_URL=postgresql://itbienvenu:123@postgres:5432/ticketing_system
+      - SECRET_KEY=supersecretkey
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+    ports:
+      - "8003:8003"
+    depends_on:
+      - postgres
+    networks:
+      - ticketing-net
+
+  ticketing-service:
+    build:
+      context: .
+      dockerfile: services/ticketing-service/Dockerfile
+    image: bienvenugashema/ticketing-ticketing-service:latest
+    environment:
+      - DATABASE_URL=postgresql://itbienvenu:123@postgres:5432/ticketing_system
+      - TICKET_SECRET_KEY=superqrsecret
+      - SECRET_KEY=supersecretkey
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+    ports:
+      - "8004:8004"
+    depends_on:
+      - postgres
+    networks:
+      - ticketing-net
+
+  qr-service:
+    build:
+      context: .
+      dockerfile: services/qr-service/Dockerfile
+    image: bienvenugashema/ticketing-qr-service:latest
+    environment:
+      - DATABASE_URL=postgresql://itbienvenu:123@postgres:5432/ticketing_system
+      - TICKET_SECRET_KEY=superqrsecret
+      - SECRET_KEY=supersecretkey
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+    ports:
+      - "8005:8005"
+    depends_on:
+      - postgres
+    networks:
+      - ticketing-net
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: services/payment-service/Dockerfile
+    image: bienvenugashema/ticketing-payment-service:latest
+    environment:
+      - DATABASE_URL=postgresql://itbienvenu:123@postgres:5432/ticketing_system
+      - SECRET_KEY=supersecretkey
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+    ports:
+      - "8006:8006"
+    depends_on:
+      - postgres
+    networks:
+      - ticketing-net
+
+networks:
+  ticketing-net:
+    driver: bridge
 
 volumes:
   postgres_data:
-
-services:
-  # PostgreSQL database
-  db:
-    image: postgres:15
-    container_name: ticketing-system-db
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: ticketing
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-
-  # Backend service
-  backend:
-    build:
-      context: ./backend
-    container_name: ticketing-system-backend
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-    ports:
-      - "8000:8000"
-    environment:
-      # Note: 'db' is the service name of PostgreSQL
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/ticketing
-    depends_on:
-      - db
-
-  # Frontend service
-  frontend:
-    build:
-      context: ./frontend
-    container_name: ticketing-system-frontend
-    ports:
-      - "8088:801"
-    depends_on:
-      - backend

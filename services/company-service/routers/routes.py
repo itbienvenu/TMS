@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import select, aliased
+from sqlalchemy import select
+from sqlalchemy.orm import aliased
 from uuid import UUID
 from datetime import datetime, UTC
 from typing import List
@@ -52,6 +53,18 @@ async def register_routes(route: RegisterRoute, db: Session = Depends(get_db), u
         company_id=str(company_id)
     )
     db.add(new_route)
+    db.commit()
+    
+    # Auto-create default full-length segment
+    default_segment = RouteSegment(
+        route_id=new_route.id,
+        start_station_id=str(route.origin_id),
+        end_station_id=str(route.destination_id),
+        price=route.price,
+        stop_order=1,
+        company_id=str(company_id)
+    )
+    db.add(default_segment)
     db.commit()
     db.refresh(new_route)
 

@@ -30,7 +30,11 @@ const Login = () => {
 
             const { access_token } = res.data;
             // Set token first to allow authenticated requests
-            localStorage.setItem('access_token', access_token);
+            try {
+                localStorage.setItem('access_token', access_token);
+            } catch (e) {
+                console.error("Storage access denied");
+            }
 
             // Fetch user details immediately to populate store
             const userRes = await api.get('/me');

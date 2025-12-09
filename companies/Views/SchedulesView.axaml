@@ -74,10 +74,10 @@
                     </StackPanel>
 
                      <StackPanel Spacing="5">
-                         <TextBlock Text="Route Segment (Optional)" Foreground="{StaticResource LightTextBrush}" FontSize="12"/>
+                         <TextBlock Text="Route Segment" Foreground="{StaticResource LightTextBrush}" FontSize="12"/>
                          <ComboBox ItemsSource="{Binding RouteSegments}" 
                                    SelectedItem="{Binding SelectedRouteSegment}"
-                                   HorizontalAlignment="Stretch" PlaceholderText="Select Segment (or leave empty)">
+                                   HorizontalAlignment="Stretch" PlaceholderText="Select Segment">
                              <ComboBox.ItemTemplate>
                                  <DataTemplate>
                                      <StackPanel Orientation="Horizontal" Spacing="5">

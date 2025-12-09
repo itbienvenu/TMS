@@ -24,7 +24,9 @@ class RouteSegmentResponse(BaseModel):
     id: str
     route_id: str
     start_station_id: str
+    start_station_name: Optional[str] = None
     end_station_id: str
+    end_station_name: Optional[str] = None
     price: float
     stop_order: int
     company_id: str
