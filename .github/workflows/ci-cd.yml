@@ -2,7 +2,7 @@ name: Monorepo Microservice CI/CD
 
 on:
   push:
-    branches: [ "main", "develop" ]
+    branches: [ "main"]
     paths:
       - 'gateway/**'
       - 'services/**'
@@ -93,23 +93,16 @@ jobs:
           username: ubuntu 
           key: ${{ secrets.SSH_PRIVATE_KEY }} 
           script: |
-            # Navigate to the directory containing your docker-compose.yml
             echo "Navigating to project directory..."
             cd /home/ubuntu/ticketing-system 
             
-            # Pull the latest code changes (ensures your docker-compose file is up to date)
             echo "Pulling latest code..."
-            git pull origin ${{ github.ref_name }} # e.g., 'main' or 'develop'
+            git pull origin ${{ github.ref_name }}
             
-            # Log into GitHub Container Registry (GHCR) on the remote EC2 server
-            # This allows the server to pull the new images you just pushed
             echo "Logging into GHCR..."
             echo ${{ secrets.PAT_GHCR }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
-            # Pull new images and restart services
             echo "Pulling latest Docker images and restarting services..."
-            # 1. docker compose pull: Pulls only the images that have changed
-            # 2. docker compose up -d: Recreates containers using the newly pulled images
             docker compose pull
             docker compose up -d --force-recreate
             
