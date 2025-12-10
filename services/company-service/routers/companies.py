@@ -9,101 +9,39 @@ from database.models import Company, CompanyUser, Role, Permission
 from schemas.CompanyScheme import CompanyCreate, CompanyResponse , CompanyUserResponse, UserCreate, PasswordChange, CompanyRoleCreate, CompanyRoleResponse
 # from app.dependencies.dependencies import get_current_super_admin_user
 # from app.utils.auth_utils import get_password_hash
+
 from methods.functions import get_current_user
 from methods.permissions import get_current_super_admin_user, get_current_company_user
 from passlib.hash import bcrypt
 
-
 # Define a new router for company management
 router = APIRouter(prefix="/api/v1/companies", tags=["Companies"])
 
+@router.get("/me", response_model=CompanyUserResponse)
+async def get_my_info(current_user: CompanyUser = Depends(get_current_company_user)):
+    """
+    Returns the current logged-in company user's information.
+    """
+    return current_user
 
-
-@router.post(
-    "/create_company",
-    response_model=CompanyResponse,
-    status_code=status.HTTP_201_CREATED,
-    dependencies=[Depends(get_current_super_admin_user)]
-)
-async def create_new_company(
-    company_data: CompanyCreate,
-    db: Session = Depends(get_db)
+@router.post("/change-password")
+async def change_password(
+    password_data: PasswordChange,
+    db: Session = Depends(get_db),
+    current_user: CompanyUser = Depends(get_current_company_user)
 ):
     """
-    Creates a new company.
-    - Creates the company record.
-    - Copies all global permissions to this company's scope.
-    - Creates a default 'admin' role for this company.
-    - Assigns all copied permissions to the 'admin' role.
+    Allows the current user to change their password.
     """
-    # Check if company name or email already exists
-    if db.query(Company).filter(Company.name == company_data.name).first():
-        raise HTTPException(status_code=400, detail="Company name already registered.")
-    if db.query(Company).filter(Company.email == company_data.email).first():
-        raise HTTPException(status_code=400, detail="Company email already registered.")
+    if not password_data.new_password:
+         raise HTTPException(status_code=400, detail="New password cannot be empty.")
+         
+    hashed_password = bcrypt.hash(password_data.new_password)
+    current_user.password_hash = hashed_password
+    db.commit()
+    return {"message": "Password updated successfully."}
 
-    try:
-        # Create the new company
-        new_company = Company(
-            id=str(uuid.uuid4()),
-            name=company_data.name,
-            email=company_data.email,
-            phone_number=company_data.phone_number,
-            address=company_data.address,
-            created_at=datetime.now(UTC)
-        )
-        db.add(new_company)
-        # Flush to get ID, but don't commit transaction yet until permissions/roles are done
-        db.flush() 
-        db.refresh(new_company)
-        
-        # 1. Fetch Global Permissions (Templates)
-        global_perms = db.query(Permission).filter(Permission.company_id == None).all()
-        
-        # 2. Create Default 'Admin' Role for this company
-        admin_role = Role(
-            id=str(uuid.uuid4()),
-            name="admin", 
-            company_id=new_company.id
-        )
-        db.add(admin_role)
 
-        # 3. Replicate permissions for this company and assign to Admin role
-        company_permissions = []
-        for gp in global_perms:
-            cp = Permission(
-                id=str(uuid.uuid4()),
-                name=gp.name,
-                company_id=new_company.id
-            )
-            company_permissions.append(cp)
-        
-        db.add_all(company_permissions)
-        
-        # Link permissions to role
-        admin_role.permissions = company_permissions 
-        
-        # Commit everything
-        db.commit()
-        db.refresh(new_company)
-        
-        return new_company
-
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"An error occurred: {e}")
-
-@router.get(
-    "/",
-    response_model=List[CompanyResponse],
-    dependencies=[Depends(get_current_super_admin_user)]
-)
-async def get_all_companies(db: Session = Depends(get_db)):
-    """
-    Returns a list of all companies. Accessible only by a super admin.
-    """
-    companies = db.query(Company).all()
-    return companies
 
 
 # get company members - MOVED UP to avoid conflict with /{company_id}
@@ -115,43 +53,31 @@ async def get_company_users(
     """
     Returns a list of company users belonging to the current user's company.
     Only company admins can access this.
-    Super admins cannot access company users - they can only manage companies.
     """
     company_users = db.query(CompanyUser).filter(CompanyUser.company_id == current_user.company_id).all()
     
     return company_users
 
 
-
-
 @router.get(
     "/{company_id}",
     response_model=CompanyResponse,
-    dependencies=[Depends(get_current_super_admin_user)]
+    dependencies=[Depends(get_current_company_user)]
 )
-async def get_company_by_id(company_id: str, db: Session = Depends(get_db)):
+async def get_company_by_id(company_id: str, db: Session = Depends(get_db), current_user: CompanyUser = Depends(get_current_company_user)):
     """
-    Returns a single company by its ID. Accessible only by a super admin.
+    Returns a single company by its ID. Accessible by company users to see their own company (if needed).
     """
+    # Restrict to own company? 
+    if company_id != current_user.company_id:
+         raise HTTPException(status_code=403, detail="Access denied")
+         
     company = db.query(Company).filter(Company.id == company_id).first()
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
     return company
 
-# Endpoint to delete any company
-
-@router.delete("/{company_id}", dependencies=[Depends(get_current_super_admin_user)])
-async def delete_company(company_id: str, db: Session = Depends(get_db)):
-
-    """This action is sudo, means super users can only do this"""
-
-    company =  db.query(Company).filter(Company.id == company_id).first()
-    if not company:
-        raise HTTPException(status_code=404, detail="Company not found")
-    db.delete(company)
-    db.commit()
-
-    return {"message":"Company deleted well"}
+# Admin endpoints moved to super-admin-service
 
 
 @router.post('/company-user', dependencies=[Depends(get_current_company_user)])

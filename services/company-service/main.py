@@ -11,6 +11,8 @@ from routers.schedules import router as schedules_router
 from routers.route_segments import router as route_segments_router
 from routers.tickets import router as tickets_router
 from routers.search import router as search_router
+from routers.roles import router as roles_router
+from routers.permissions import router as permissions_router
 from common.database import get_db_engine, Base
 
 app = FastAPI(title="Company Service", docs_url="/docs", openapi_url="/openapi.json")
@@ -33,6 +35,8 @@ app.include_router(schedules_router)
 app.include_router(route_segments_router)
 app.include_router(tickets_router)
 app.include_router(search_router)
+app.include_router(roles_router)
+app.include_router(permissions_router)
 
 
 @app.on_event("startup")

@@ -44,12 +44,22 @@ async def login(user: LoginUser, db: Session = Depends(get_db)):
     # For now, let's just make get_db use a singleton engine.
     return login_user(db, user)
 
+from sqlalchemy import or_
+# ... imports ...
+
 @router.post("/company-login/start")
 async def company_login_start(
     payload: CompanyLoginStart,
     db: Session = Depends(get_db),
 ):
-    company_user = db.query(CompanyUser).filter(CompanyUser.login_email == payload.login_email).first()
+    # Allow login by either 'login_email' (username) OR 'email' (personal email)
+    company_user = db.query(CompanyUser).filter(
+        or_(
+            CompanyUser.login_email == payload.login_email,
+            CompanyUser.email == payload.login_email
+        )
+    ).first()
+    
     if not company_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Company user not found")
 
@@ -85,7 +95,13 @@ async def company_login_verify(
     payload: CompanyLoginVerify,
     db: Session = Depends(get_db),
 ):
-    company_user = db.query(CompanyUser).filter(CompanyUser.login_email == payload.login_email).first()
+    company_user = db.query(CompanyUser).filter(
+        or_(
+            CompanyUser.login_email == payload.login_email,
+            CompanyUser.email == payload.login_email
+        )
+    ).first()
+    
     if not company_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Company user not found")
 

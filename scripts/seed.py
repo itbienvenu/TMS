@@ -3,55 +3,94 @@ import sys
 import asyncio
 from datetime import datetime, UTC
 import uuid
-import hashlib
 
-# Add current dir to path to find services
+# Add current dir to path
 sys.path.append(os.getcwd())
 
-# Import from common models
-try:
-    from services.common.models import Base, User, Company, CompanyUser, Bus, Route, BusStation, Driver, Role, LoginOTP
-    from services.common.database import get_db_engine, get_db_session
-except ImportError:
-    from common.models import Base, User, Company, CompanyUser, Bus, Route, BusStation, Driver, Role, LoginOTP
-    from common.database import get_db_engine, get_db_session
+from services.common.models import Base, User, Company, CompanyUser, Bus, Route, BusStation, Driver, Role
+from services.common.database import get_db_engine, get_db_session
 
-def get_password_hash(password: str) -> str:
-    # Use Passlib locally if available or simple hash for seed ? 
-    # To avoid dependency issues inside containers if passlib isn't common (it is).
-    # We will assume passlib context.
+# We use a simple bcrypt implementation if passlib isn't available, or rely on passlib
+try:
     from passlib.context import CryptContext
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-    return pwd_context.hash(password)
+    def get_password_hash(password: str) -> str:
+        return pwd_context.hash(password)
+except ImportError:
+    # Fallback to simple bcrypt if passlib missing (though we installed it)
+    import bcrypt
+    def get_password_hash(password: str) -> str:
+        salt = bcrypt.gensalt()
+        return bcrypt.hashpw(password.encode(), salt).decode()
 
 def seed_data():
     engine = get_db_engine("seed")
+    # Ensure tables exist
     Base.metadata.create_all(bind=engine)
+    
     session_gen = get_db_session(engine)
     db = next(session_gen)
     
     try:
-        # 1. Create Super Admin (Platform Admin)
+        print("Starting Seeding...")
+
+        # 1. Create a "Ticketing Admin" Company (System Company)
+        # This is required because CompanyUser MUST belong to a company
+        admin_company = db.query(Company).filter(Company.name == "Ticketing Admin").first()
+        if not admin_company:
+            print("Creating Admin Company...")
+            admin_company = Company(
+                 id=str(uuid.uuid4()),
+                 name="Ticketing Admin",
+                 email="admin@system.com",
+                 address="System",
+                 created_at=datetime.now(UTC)
+            )
+            db.add(admin_company)
+            db.flush()
+
+        # 2. Create Global 'super_admin' Role
+        # If company_id is None, it's global? Or we assign it to Admin Company?
+        # The permission logic checks: perm.company_id == user.company_id OR (perm.company_id is None and is_super_admin)
+        # We need a role named 'super_admin'. It can belong to Admin Company.
+        super_role = db.query(Role).filter(Role.name == "super_admin").first()
+        if not super_role:
+            print("Creating super_admin Role...")
+            super_role = Role(
+                id=str(uuid.uuid4()),
+                name="super_admin",
+                company_id=admin_company.id # specific to admin company?
+            )
+            db.add(super_role)
+            db.flush()
+
+        # 3. Create Super Admin User (CompanyUser)
         admin_email = "admin@ticketing.com"
-        admin = db.query(User).filter(User.email == admin_email).first()
-        if not admin:
-            print("Creating Super Admin...")
-            admin = User(
+        # Check if exists in CompanyUser
+        super_admin = db.query(CompanyUser).filter(CompanyUser.email == admin_email).first()
+        
+        if not super_admin:
+            print(f"Creating Super Admin User: {admin_email}...")
+            super_admin = CompanyUser(
                 id=str(uuid.uuid4()),
                 email=admin_email,
-                full_name="Super Admin",
-                phone_number="0780000000",
+                login_email="super_admin", # Login ID
+                full_name="Super Administrator",
+                phone_number="0000000000",
                 password_hash=get_password_hash("admin123"),
+                company_id=admin_company.id,
                 created_at=datetime.now(UTC)
             )
-            # Assuming Role based? Or is_staff? Current models have User and CompanyUser.
-            # Usually Super Admin is in User table or CompanyUser?
-            # From admin_router, it seems get_current_super_admin_user checks something.
-            # Let's check backend/methods/permissions.py... handled later.
-            # For now, we persist the User.
-            db.add(admin)
-        
-        # 2. Create Default Company
+            super_admin.roles.append(super_role)
+            db.add(super_admin)
+        else:
+            print("Super Admin already exists.")
+            # Ensure role is assigned
+            if super_role not in super_admin.roles:
+                 super_admin.roles.append(super_role)
+
+
+        # 4. Standard Seed Data (KBS)
         company_name = "Kigali Bus Service"
         company = db.query(Company).filter(Company.name == company_name).first()
         if not company:
@@ -65,107 +104,46 @@ def seed_data():
                 created_at=datetime.now(UTC)
             )
             db.add(company)
+            db.flush()
         
-        # 3. Create Company Admin
+        # KBS Admin
         comp_admin_email = "admin@kbs.rw"
         comp_admin = db.query(CompanyUser).filter(CompanyUser.email == comp_admin_email).first()
         if not comp_admin:
-            print(f"Creating Company Admin: {comp_admin_email}...")
+            print(f"Creating KBS Admin: {comp_admin_email}...")
             comp_admin = CompanyUser(
                 id=str(uuid.uuid4()),
                 email=comp_admin_email,
-                login_email="kbs_admin", # Login identifier
+                login_email="kbs_admin",
                 full_name="KBS Admin",
                 phone_number="0781111111",
                 password_hash=get_password_hash("password123"),
                 company_id=company.id,
                 created_at=datetime.now(UTC)
             )
+            # Create 'admin' role for KBS
+            kbs_admin_role = Role(id=str(uuid.uuid4()), name="admin", company_id=company.id)
+            db.add(kbs_admin_role)
+            comp_admin.roles.append(kbs_admin_role)
             db.add(comp_admin)
-            
-            # Add Admin Role
-            role = Role(
-                id=str(uuid.uuid4()),
-                name="admin",
-                company_id=company.id
-                # permissions="all" # SImplified
-            )
-            db.add(role)
-            comp_admin.roles.append(role)
 
-        # 4. Bus Stations (Kigali, Musanze)
+        # Stations
         stations = ["Nyabugogo", "Musanze", "Rubavu", "Huye"]
         station_objs = {}
         for s_name in stations:
             st = db.query(BusStation).filter(BusStation.name == s_name).first()
             if not st:
-                print(f"Creating Station: {s_name}")
-                st = BusStation(
-                    id=str(uuid.uuid4()), 
-                    name=s_name, 
-                    location=s_name, 
-                    created_at=datetime.now(UTC)
-                )
+                st = BusStation(id=str(uuid.uuid4()), name=s_name, location=s_name, company_id=company.id if company else None, created_at=datetime.now(UTC))
                 db.add(st)
             station_objs[s_name] = st
             
-        # 5. Create Route (Kigali -> Musanze)
-        if station_objs.get("Nyabugogo") and station_objs.get("Musanze") and company:
-            route = db.query(Route).filter(
-                Route.origin_id==station_objs["Nyabugogo"].id, 
-                Route.destination_id==station_objs["Musanze"].id
-            ).first()
-            
-            if not route:
-                print("Creating Route: Kigali -> Musanze")
-                route = Route(
-                    id=str(uuid.uuid4()),
-                    origin_id=station_objs["Nyabugogo"].id,
-                    destination_id=station_objs["Musanze"].id,
-                    company_id=company.id,
-                    price=2500,
-                    created_at=datetime.now(UTC)
-                )
-                db.add(route)
-            
-            # 6. Create Bus
-            bus_plate = "RAC 123 A"
-            bus = db.query(Bus).filter(Bus.plate_number == bus_plate).first()
-            if not bus:
-                print(f"Creating Bus: {bus_plate}")
-                bus = Bus(
-                    id=str(uuid.uuid4()),
-                    plate_number=bus_plate,
-                    capacity=30,
-                    available_seats=30,
-                    company_id=company.id,
-                    created_at=datetime.now(UTC)
-                )
-                db.add(bus)
-                
-            # 7. Create Driver
-            driver_email = "driver@kbs.rw"
-            driver = db.query(Driver).filter(Driver.email == driver_email).first()
-            if not driver:
-                print(f"Creating Driver: {driver_email}")
-                driver = Driver(
-                    id=str(uuid.uuid4()),
-                    full_name="John Driver",
-                    email=driver_email,
-                    phone_number="0789999999",
-                    license_number="DL12345",
-                    company_id=company.id,
-                    bus_id=bus.id, # Assign to bus
-                    created_at=datetime.now(UTC),
-                    password_hash=get_password_hash("driver123")
-                )
-                db.add(driver)
-
         db.commit()
-        print("Data Seeding Completed Successfully.")
+        print("Seeding Complete.")
         
     except Exception as e:
-        print(f"Seeding failed: {e}")
+        print(f"Seeding Failed: {e}")
+        import traceback
+        traceback.print_exc()
         db.rollback()
     finally:
         db.close()

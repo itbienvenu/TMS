@@ -136,9 +136,25 @@ services:
       - SECRET_KEY=supersecretkey
       - ALGORITHM=HS256
       - ACCESS_TOKEN_EXPIRE_MINUTES=30
-
     ports:
       - "8006:8006"
+    depends_on:
+      - postgres
+    networks:
+      - ticketing-net
+
+  super-admin-service:
+    build:
+      context: .
+      dockerfile: services/super-admin-service/Dockerfile
+    image: bienvenugashema/ticketing-super-admin-service:latest
+    environment:
+      - DATABASE_URL=postgresql://itbienvenu:123@postgres:5432/ticketing_system
+      - SECRET_KEY=supersecretkey
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+    ports:
+      - "8007:8007"
     depends_on:
       - postgres
     networks:
