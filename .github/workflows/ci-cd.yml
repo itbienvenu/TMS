@@ -18,33 +18,35 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service_name:
-          - gateway
-          - auth-service
-          - user-service
-          - company-service
-          - ticketing-service
-          - qr-service
-          - payment-service
-        
-        dockerfile_path:
-          - gateway/Dockerfile
-          - services/auth-service/Dockerfile
-          - services/user-service/Dockerfile
-          - services/company-service/Dockerfile
-          - services/ticketing-service/Dockerfile
-          - services/qr-service/Dockerfile
-          - services/payment-service/Dockerfile
-        
-        image_tag:
-          - ticketing-gateway
-          - ticketing-auth-service
-          - ticketing-user-service
-          - ticketing-company-service
-          - ticketing-ticketing-service
-          - ticketing-qr-service
-          - ticketing-payment-service
-          
+        config:
+          - service_name: gateway
+            dockerfile_path: gateway/Dockerfile
+            image_tag: ticketing-gateway
+            
+          - service_name: auth-service
+            dockerfile_path: services/auth-service/Dockerfile
+            image_tag: ticketing-auth-service
+            
+          - service_name: user-service
+            dockerfile_path: services/user-service/Dockerfile
+            image_tag: ticketing-user-service
+            
+          - service_name: company-service
+            dockerfile_path: services/company-service/Dockerfile
+            image_tag: ticketing-company-service
+            
+          - service_name: ticketing-service
+            dockerfile_path: services/ticketing-service/Dockerfile
+            image_tag: ticketing-ticketing-service
+            
+          - service_name: qr-service
+            dockerfile_path: services/qr-service/Dockerfile
+            image_tag: ticketing-qr-service
+            
+          - service_name: payment-service
+            dockerfile_path: services/payment-service/Dockerfile
+            image_tag: ticketing-payment-service
+            
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -52,21 +54,14 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-          
-      - name: Build and Push Docker Image for ${{ matrix.service_name }}
+      - name: Build and Push Docker Image for ${{ matrix.config.service_name }}
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ${{ matrix.dockerfile_path }}
+          file: ${{ matrix.config.dockerfile_path }}
           push: true
-          tags: ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.image_tag }}:${{ github.sha }},
-                ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.image_tag }}:latest
+          tags: ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.config.image_tag }}:${{ github.sha }},
+                ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.config.image_tag }}:latest
 
 
   deploy_via_ssh:
