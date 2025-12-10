@@ -7,7 +7,7 @@ public static class ApiConfig
     /// <summary>
     /// Base URL for the API. http://127.0.0.1:8000/Change this value to point to  backend server.
     /// </summary>
-    public const string BaseUrl = "http://localhost:8000";
+    public const string BaseUrl = "http://127.0.0.1:8000";
     
     /// <summary>
     /// Full API base path including version

@@ -43,6 +43,9 @@ build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 [/home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/companies/Views/StationsView.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
+[/home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/companies/Views/SuperAdminDashboard.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
 [/home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/companies/Views/TeamView.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 

@@ -22,4 +22,29 @@ public class CompanyService : ApiService
     {
         await PostAsync<object>("companies/company-user", user);
     }
+    
+    public async Task<List<Company>> GetAllCompaniesAsync()
+    {
+        return await GetListAsync<Company>("companies/");
+    }
+    
+    public async Task<Company> GetCompanyAsync(string id)
+    {
+        return await GetAsync<Company>($"companies/{id}");
+    }
+    
+    public async Task CreateCompanyAsync(CompanyCreate company)
+    {
+        await PostAsync<object>("companies/create_company", company);
+    }
+    
+    public async Task DeleteCompanyAsync(string id)
+    {
+        await DeleteAsync($"companies/{id}");
+    }
+
+    public async Task<CompanyUser> GetMyInfoAsync()
+    {
+        return await GetAsync<CompanyUser>("companies/me");
+    }
 }

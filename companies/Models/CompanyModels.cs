@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json.Serialization;
 
 namespace CompanyDashboard.Models;
@@ -296,8 +297,13 @@ public class CompanyUser
     [JsonPropertyName("phone_number")]
     public string? PhoneNumber { get; set; }
     
-    [JsonPropertyName("role")]
-    public string? Role { get; set; }
+    [JsonPropertyName("roles")]
+    public List<Role>? Roles { get; set; }
+
+    [JsonIgnore]
+    public string Role => Roles != null && Roles.Count > 0 
+        ? string.Join(", ", Roles.Select(r => r.Name)) 
+        : string.Empty;
 }
 
 // User Info Model
@@ -455,3 +461,39 @@ public class DriverUpdate
     public string? BusId { get; set; }
 }
 
+
+public class Company
+{
+    [JsonPropertyName("id")]
+    public string Id { get; set; } = string.Empty;
+
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+
+    [JsonPropertyName("email")]
+    public string? Email { get; set; }
+
+    [JsonPropertyName("phone_number")]
+    public string? PhoneNumber { get; set; }
+
+    [JsonPropertyName("address")]
+    public string? Address { get; set; }
+
+    [JsonPropertyName("created_at")]
+    public DateTime? CreatedAt { get; set; }
+}
+
+public class CompanyCreate
+{
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+
+    [JsonPropertyName("email")]
+    public string? Email { get; set; }
+
+    [JsonPropertyName("phone_number")]
+    public string? PhoneNumber { get; set; }
+    
+    [JsonPropertyName("address")]
+    public string? Address { get; set; }
+}

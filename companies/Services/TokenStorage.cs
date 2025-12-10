@@ -17,12 +17,15 @@ public static class TokenStorage
         set => _loginEmail = value;
     }
 
+    public static bool IsAuthenticated => !string.IsNullOrEmpty(_accessToken);
+    
+    public static string? UserRole { get; set; }
+
     public static void Clear()
     {
         _accessToken = null;
         _loginEmail = null;
+        UserRole = null;
     }
-
-    public static bool IsAuthenticated => !string.IsNullOrEmpty(_accessToken);
 }
 

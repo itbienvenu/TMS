@@ -23,6 +23,11 @@ public class ApiService
         };
         HttpClient.DefaultRequestHeaders.Add("Accept", "application/json");
         BasePath = ApiConfig.ApiBasePath;
+        
+        if (TokenStorage.IsAuthenticated && !string.IsNullOrEmpty(TokenStorage.AccessToken))
+        {
+            SetAuthToken(TokenStorage.AccessToken);
+        }
     }
 
     protected void SetAuthToken(string token)

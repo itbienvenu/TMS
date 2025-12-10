@@ -34,6 +34,8 @@
                 <!-- Menu Items -->
                 <ScrollViewer Grid.Row="1">
                     <StackPanel Spacing="5" Margin="12,0">
+
+
                         <Button Classes="Ghost" Command="{Binding NavigateToDashboardCommand}" 
                                 HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="12,10"
                                 CornerRadius="8">
