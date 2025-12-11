@@ -1,0 +1,51 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:CompanyDashboard.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
+             x:Class="CompanyDashboard.Views.ChatView"
+             x:DataType="vm:ChatViewModel">
+    
+    <Grid RowDefinitions="*,Auto" Margin="20">
+        
+        <!-- Messages Area -->
+        <Border Grid.Row="0" Background="White" CornerRadius="8" BoxShadow="0 2 10 0 #10000000" Margin="0,0,0,20">
+            <ScrollViewer>
+                <ItemsControl ItemsSource="{Binding Messages}" Margin="20">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="0,5" HorizontalAlignment="{Binding Alignment}">
+                                <Border Background="{Binding BgColor}" CornerRadius="12" Padding="15,10">
+                                    <TextBlock Text="{Binding Content}" 
+                                               Foreground="{Binding TextColor}" 
+                                               TextWrapping="Wrap" 
+                                               MaxWidth="500"/>
+                                </Border>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Input Area -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0">
+             <TextBox Grid.Column="0" Text="{Binding InputText}" 
+                      Watermark="Ask AI about your buses, schedules, or analytics..." 
+                      Height="50" VerticalContentAlignment="Center"
+                      CornerRadius="8" BorderBrush="#CED4DA"/>
+             
+             <Button Grid.Column="1" Command="{Binding SendMessageCommand}" 
+                     Margin="10,0,0,0" Height="50" Width="80"
+                     Background="{StaticResource PrimaryBlueBrush}" Foreground="White"
+                     CornerRadius="8" IsEnabled="{Binding !IsLoading}">
+                 <TextBlock Text="Send"/>
+             </Button>
+        </Grid>
+        
+        <!-- Loading Indicator Overlay -->
+        <ProgressBar Grid.Row="1" IsIndeterminate="True" IsVisible="{Binding IsLoading}" 
+                     VerticalAlignment="Top" Margin="0,-5,0,0" Height="2"/>
+    </Grid>
+</UserControl>

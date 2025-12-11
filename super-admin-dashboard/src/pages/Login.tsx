@@ -44,7 +44,7 @@ const Login = () => {
             localStorage.setItem('super_admin_token', token);
 
             // Verify role
-            const meResponse = await api.get('/companies/me');
+            const meResponse = await api.get('/super-admin/companies/me');
             const roles = meResponse.data.roles || [];
             const isSuperAdmin = roles.some((r: any) => r.name === 'super_admin');
 

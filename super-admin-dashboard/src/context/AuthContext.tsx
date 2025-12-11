@@ -24,7 +24,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const token = localStorage.getItem('super_admin_token');
             if (token) {
                 try {
-                    const response = await api.get('/companies/me');
+                    const response = await api.get('/super-admin/companies/me');
                     setUser(response.data);
 
                     // Check if user has super_admin role

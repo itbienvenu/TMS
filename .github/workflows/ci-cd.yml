@@ -46,6 +46,14 @@ jobs:
           - service_name: payment-service
             dockerfile_path: services/payment-service/Dockerfile
             image_tag: ticketing-payment-service
+          
+          - service_name: ai-service
+            dockerfile_path: services/ai-service/Dockerfile
+            image_tag: ticketing-ai-service
+          
+          - service_name: super-admin-service
+            dockerfile_path: services/super-admin-service/Dockerfile
+            image_tag: ticketing-super-admin-service
             
     steps:
       - name: Checkout Repository

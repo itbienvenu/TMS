@@ -11,6 +11,8 @@ import DashboardPage from './pages/DashboardPage';
 import MyTicketsPage from './pages/MyTicketsPage';
 import { useAuthStore } from './store/authStore';
 
+import ChatWidget from './components/ChatWidget';
+
 function App() {
   const { checkAuth } = useAuthStore();
 
@@ -32,6 +34,7 @@ function App() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/my-tickets" element={<MyTicketsPage />} />
         </Routes>
+        <ChatWidget />
       </div>
     </Router>
   );

@@ -98,6 +98,15 @@
                                  <TextBlock Text="Team" FontWeight="Medium"/>
                              </StackPanel>
                         </Button>
+                        
+                        <Button Classes="Ghost" Command="{Binding NavigateToChatCommand}" 
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="12,10"
+                                CornerRadius="8">
+                             <StackPanel Orientation="Horizontal" Spacing="12">
+                                 <TextBlock Text="🤖"/>
+                                 <TextBlock Text="AI Assistant" FontWeight="Medium"/>
+                             </StackPanel>
+                        </Button>
                     </StackPanel>
                 </ScrollViewer>
                 

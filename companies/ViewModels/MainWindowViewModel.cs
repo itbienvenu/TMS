@@ -20,6 +20,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public StationsViewModel StationsViewModel { get; }
     public SchedulesViewModel SchedulesViewModel { get; }
     public TicketsViewModel TicketsViewModel { get; }
+    public ChatViewModel ChatViewModel { get; }
 
     public MainWindowViewModel()
     {
@@ -29,6 +30,7 @@ public partial class MainWindowViewModel : ViewModelBase
         StationsViewModel = new StationsViewModel();
         SchedulesViewModel = new SchedulesViewModel();
         TicketsViewModel = new TicketsViewModel();
+        ChatViewModel = new ChatViewModel();
 
         CurrentViewModel = DashboardViewModel;
     }
@@ -83,11 +85,16 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private void NavigateToChat()
+    {
+        CurrentViewModel = ChatViewModel;
+        CurrentPageTitle = "AI Assistant";
+    }
+
+    [RelayCommand]
     private void Logout()
     {
         TokenStorage.Clear();
-        // Navigate back to login - this will be handled by the main window
-        // The MainWindow will handle closing and showing LoginView
         LogoutRequested?.Invoke();
     }
 

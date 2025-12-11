@@ -9,7 +9,10 @@ class CompanyBase(BaseModel):
     address: Optional[str] = None
 
 class CompanyCreate(CompanyBase):
-    pass
+    admin_email: str
+    admin_name: str
+    admin_phone: str
+    admin_password: str
 
 class CompanyResponse(CompanyBase):
     id: str

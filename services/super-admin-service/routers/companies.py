@@ -9,6 +9,7 @@ from database.models import Company, CompanyUser, Role, Permission
 from schemas.CompanyScheme import CompanyCreate, CompanyResponse
 
 from methods.permissions import get_current_super_admin_user
+from methods.functions import get_password_hash
 
 # Define router for super admin company management
 router = APIRouter(prefix="/api/v1/super-admin/companies", tags=["Companies"])
@@ -29,12 +30,17 @@ async def create_new_company(
     - Copies all global permissions to this company's scope.
     - Creates a default 'admin' role for this company.
     - Assigns all copied permissions to the 'admin' role.
+    - Creates an initial company admin user and assigns the admin role.
     """
     # Check if company name or email already exists
     if db.query(Company).filter(Company.name == company_data.name).first():
         raise HTTPException(status_code=400, detail="Company name already registered.")
     if db.query(Company).filter(Company.email == company_data.email).first():
         raise HTTPException(status_code=400, detail="Company email already registered.")
+    
+    # Check if admin email already exists
+    if db.query(CompanyUser).filter(CompanyUser.email == company_data.admin_email).first():
+        raise HTTPException(status_code=400, detail="Admin user email already registered.")
 
     try:
         # Create the new company
@@ -76,6 +82,21 @@ async def create_new_company(
         # Link permissions to role
         admin_role.permissions = company_permissions 
         
+        # 4. Create Initial Company Admin
+        hashed_password = get_password_hash(company_data.admin_password)
+        company_admin = CompanyUser(
+            id=str(uuid.uuid4()),
+            email=company_data.admin_email,
+            login_email=company_data.admin_email, # using email as login identifier
+            full_name=company_data.admin_name,
+            phone_number=company_data.admin_phone,
+            password_hash=hashed_password,
+            company_id=new_company.id,
+            created_at=datetime.now(UTC)
+        )
+        company_admin.roles.append(admin_role)
+        db.add(company_admin)
+        
         # Commit everything
         db.commit()
         db.refresh(new_company)
@@ -97,6 +118,11 @@ async def get_all_companies(db: Session = Depends(get_db)):
     """
     companies = db.query(Company).all()
     return companies
+
+@router.get("/me")
+async def get_me(current_user: CompanyUser = Depends(get_current_super_admin_user)):
+    """Returns the current super admin info."""
+    return current_user
 
 @router.get(
     "/{company_id}",
@@ -122,8 +148,3 @@ async def delete_company(company_id: str, db: Session = Depends(get_db)):
     db.commit()
 
     return {"message":"Company deleted well"}
-
-@router.get("/me")
-async def get_me(current_user: CompanyUser = Depends(get_current_super_admin_user)):
-    """Returns the current super admin info."""
-    return current_user

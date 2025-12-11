@@ -118,6 +118,27 @@ services:
     networks:
       - ticketing-net
 
+  ai-service:
+    build:
+      context: services/ai-service
+      dockerfile: Dockerfile
+    image: bienvenugashema/ticketing-ai-service:latest
+    environment:
+      - DATABASE_URL=postgresql://itbienvenu:123@postgres:5432/ticketing_system
+      # Keys should be provided in .env or added here
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY}
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
+    ports:
+      - "8008:8008"
+    volumes:
+      - ./services/ai-service:/app
+    depends_on:
+      - postgres
+    networks:
+      - ticketing-net
+
 networks:
   ticketing-net:
     driver: bridge

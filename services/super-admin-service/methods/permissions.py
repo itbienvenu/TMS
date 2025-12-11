@@ -24,11 +24,6 @@ def get_current_company_user(current_user: CompanyUser = Depends(get_company_use
     Dependency that checks if the current user is a company user (not super admin).
     Super admins are NOT allowed here - they can only manage companies, not company internals.
     """
-    if any(role.name == "super_admin" for role in (current_user.roles or [])):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Super admins can only manage companies, not company resources."
-        )
     if not current_user.company_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

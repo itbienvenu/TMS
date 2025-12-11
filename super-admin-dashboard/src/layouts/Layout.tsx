@@ -6,6 +6,7 @@ import BusinessIcon from '@mui/icons-material/Business';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import AdminChatWidget from '../components/AdminChatWidget';
 
 const drawerWidth = 260;
 
@@ -102,7 +103,9 @@ const Layout = ({ children }: { children: ReactNode }) => {
                 <Toolbar />
                 {children}
             </Box>
+            <AdminChatWidget />
         </Box>
+
     );
 };
 

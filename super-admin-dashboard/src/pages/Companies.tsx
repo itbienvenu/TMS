@@ -25,7 +25,11 @@ const Companies = () => {
         name: '',
         email: '',
         phone_number: '',
-        address: ''
+        address: '',
+        admin_name: '',
+        admin_email: '',
+        admin_phone: '',
+        admin_password: ''
     });
     const [error, setError] = useState('');
 
@@ -59,7 +63,10 @@ const Companies = () => {
         try {
             await api.post('/super-admin/companies/create_company', formData);
             setOpen(false);
-            setFormData({ name: '', email: '', phone_number: '', address: '' });
+            setFormData({
+                name: '', email: '', phone_number: '', address: '',
+                admin_name: '', admin_email: '', admin_phone: '', admin_password: ''
+            });
             fetchCompanies();
         } catch (err: any) {
             setError(err.response?.data?.detail || 'Failed to create company');
@@ -149,6 +156,42 @@ const Companies = () => {
                         variant="outlined"
                         value={formData.address}
                         onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    />
+
+                    <Typography variant="h6" sx={{ mt: 3, mb: 1 }}>Admin User Details</Typography>
+
+                    <TextField
+                        margin="dense"
+                        label="Admin Full Name"
+                        fullWidth
+                        variant="outlined"
+                        value={formData.admin_name}
+                        onChange={(e) => setFormData({ ...formData, admin_name: e.target.value })}
+                    />
+                    <TextField
+                        margin="dense"
+                        label="Admin Email"
+                        fullWidth
+                        variant="outlined"
+                        value={formData.admin_email}
+                        onChange={(e) => setFormData({ ...formData, admin_email: e.target.value })}
+                    />
+                    <TextField
+                        margin="dense"
+                        label="Admin Phone"
+                        fullWidth
+                        variant="outlined"
+                        value={formData.admin_phone}
+                        onChange={(e) => setFormData({ ...formData, admin_phone: e.target.value })}
+                    />
+                    <TextField
+                        margin="dense"
+                        label="Admin Password"
+                        type="password"
+                        fullWidth
+                        variant="outlined"
+                        value={formData.admin_password}
+                        onChange={(e) => setFormData({ ...formData, admin_password: e.target.value })}
                     />
                 </DialogContent>
                 <DialogActions sx={{ p: 2 }}>

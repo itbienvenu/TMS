@@ -58,6 +58,7 @@ services:
       - postgres
     networks:
       - ticketing-net
+    restart: always
 
   user-service:
     build:
@@ -72,6 +73,7 @@ services:
       - postgres
     networks:
       - ticketing-net
+    restart: always
 
   company-service:
     build:
@@ -89,6 +91,7 @@ services:
       - postgres
     networks:
       - ticketing-net
+    restart: always
 
   ticketing-service:
     build:
@@ -107,6 +110,7 @@ services:
       - postgres
     networks:
       - ticketing-net
+    restart: always
 
   qr-service:
     build:
@@ -125,6 +129,7 @@ services:
       - postgres
     networks:
       - ticketing-net
+    restart: always
 
   payment-service:
     build:
@@ -142,6 +147,7 @@ services:
       - postgres
     networks:
       - ticketing-net
+    restart: always
 
   super-admin-service:
     build:
@@ -150,7 +156,7 @@ services:
     image: bienvenugashema/ticketing-super-admin-service:latest
     environment:
       - DATABASE_URL=postgresql://itbienvenu:123@postgres:5432/ticketing_system
-      - SECRET_KEY=supersecretkey
+      - SECRET_KEY=67ytyugyhu5677ytghbjnhgyfttyuhgt
       - ALGORITHM=HS256
       - ACCESS_TOKEN_EXPIRE_MINUTES=30
     ports:
@@ -159,6 +165,26 @@ services:
       - postgres
     networks:
       - ticketing-net
+    restart: always
+
+  ai-service:
+    build:
+      context: services/ai-service
+      dockerfile: Dockerfile
+    image: bienvenugashema/ticketing-ai-service:latest
+    environment:
+      - DATABASE_URL=postgresql://itbienvenu:123@postgres:5432/ticketing_system
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY}
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
+    ports:
+      - "8008:8008"
+    depends_on:
+      - postgres
+    networks:
+      - ticketing-net
+    restart: always
 
 networks:
   ticketing-net:

@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+sqlalchemy
+psycopg2-binary
+openai==1.55.3
+python-dotenv==1.0.0
+google-generativeai

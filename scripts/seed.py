@@ -10,14 +10,12 @@ sys.path.append(os.getcwd())
 from services.common.models import Base, User, Company, CompanyUser, Bus, Route, BusStation, Driver, Role
 from services.common.database import get_db_engine, get_db_session
 
-# We use a simple bcrypt implementation if passlib isn't available, or rely on passlib
 try:
     from passlib.context import CryptContext
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
     def get_password_hash(password: str) -> str:
         return pwd_context.hash(password)
 except ImportError:
-    # Fallback to simple bcrypt if passlib missing (though we installed it)
     import bcrypt
     def get_password_hash(password: str) -> str:
         salt = bcrypt.gensalt()
@@ -34,8 +32,6 @@ def seed_data():
     try:
         print("Starting Seeding...")
 
-        # 1. Create a "Ticketing Admin" Company (System Company)
-        # This is required because CompanyUser MUST belong to a company
         admin_company = db.query(Company).filter(Company.name == "Ticketing Admin").first()
         if not admin_company:
             print("Creating Admin Company...")
@@ -49,10 +45,6 @@ def seed_data():
             db.add(admin_company)
             db.flush()
 
-        # 2. Create Global 'super_admin' Role
-        # If company_id is None, it's global? Or we assign it to Admin Company?
-        # The permission logic checks: perm.company_id == user.company_id OR (perm.company_id is None and is_super_admin)
-        # We need a role named 'super_admin'. It can belong to Admin Company.
         super_role = db.query(Role).filter(Role.name == "super_admin").first()
         if not super_role:
             print("Creating super_admin Role...")
