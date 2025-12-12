@@ -10,10 +10,12 @@ on:
 
 permissions:
   contents: read
-  packages: write # Grant permission to write (push) packages to GHCR
+  packages: write
 
 env:
-  REGISTRY: ghcr.io # Using GitHub Container Registry (GHCR)
+  REGISTRY: ghcr.io
+  DRY_RUN: false # Set to true locally if you don't want to push images
+  IMAGE_REPO: ikobeproject/ticketing-system
 
 jobs:
   build_and_push:
@@ -22,51 +24,42 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        config:
-          - service_name: gateway
-            dockerfile_path: gateway/Dockerfile
+        service:
+          - name: gateway
+            dockerfile: gateway/Dockerfile
             image_tag: ticketing-gateway
-            
-          - service_name: auth-service
-            dockerfile_path: services/auth-service/Dockerfile
+          - name: auth-service
+            dockerfile: services/auth-service/Dockerfile
             image_tag: ticketing-auth-service
-            
-          - service_name: user-service
-            dockerfile_path: services/user-service/Dockerfile
+          - name: user-service
+            dockerfile: services/user-service/Dockerfile
             image_tag: ticketing-user-service
-            
-          - service_name: company-service
-            dockerfile_path: services/company-service/Dockerfile
+          - name: company-service
+            dockerfile: services/company-service/Dockerfile
             image_tag: ticketing-company-service
-            
-          - service_name: ticketing-service
-            dockerfile_path: services/ticketing-service/Dockerfile
+          - name: ticketing-service
+            dockerfile: services/ticketing-service/Dockerfile
             image_tag: ticketing-ticketing-service
-            
-          - service_name: qr-service
-            dockerfile_path: services/qr-service/Dockerfile
+          - name: qr-service
+            dockerfile: services/qr-service/Dockerfile
             image_tag: ticketing-qr-service
-            
-          - service_name: payment-service
-            dockerfile_path: services/payment-service/Dockerfile
+          - name: payment-service
+            dockerfile: services/payment-service/Dockerfile
             image_tag: ticketing-payment-service
-            
-          - service_name: ai-service
-            dockerfile_path: services/ai-service/Dockerfile
+          - name: ai-service
+            dockerfile: services/ai-service/Dockerfile
             image_tag: ticketing-ai-service
-            
-          - service_name: super-admin-service
-            dockerfile_path: services/super-admin-service/Dockerfile
+          - name: super-admin-service
+            dockerfile: services/super-admin-service/Dockerfile
             image_tag: ticketing-super-admin-service
-            
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set Lowercase Repository Slug
+      - name: Set Lowercase Repository Owner
         id: slug
-        run: |
-          echo "IMAGE_REPO=${GITHUB_REPOSITORY,,}" 
+        run: echo "IMAGE_OWNER=${GITHUB_REPOSITORY,,}" 
         env:
           GITHUB_REPOSITORY: ${{ github.repository }}
 
@@ -79,50 +72,39 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-        
-      - name: Build and Push Docker Image for ${{ matrix.config.service_name }}
+
+      - name: Build and Push Docker Image
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ${{ matrix.config.dockerfile_path }}
-          push: true
-          tags: ${{ env.REGISTRY }}/${{ steps.slug.outputs.IMAGE_REPO }}/${{ matrix.config.image_tag }}:${{ github.sha }},
-                ${{ env.REGISTRY }}/${{ steps.slug.outputs.IMAGE_REPO }}/${{ matrix.config.image_tag }}:latest
-
+          file: ${{ matrix.service.dockerfile }}
+          push: ${{ env.DRY_RUN != 'true' }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_REPO }}/${{ matrix.service.image_tag }}:${{ github.sha }},${{ env.REGISTRY }}/${{ env.IMAGE_REPO }}/${{ matrix.service.image_tag }}:latest
 
   deploy_via_ssh:
     runs-on: ubuntu-latest
-    needs: build_and_push # Only run if ALL service builds succeeded
+    needs: build_and_push
     environment: staging
     
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-        
+
       - name: Install SSH Key
         uses: shimataro/ssh-key-action@v2
         with:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          known_hosts: 'placeholder-to-avoid-warning' 
+          known_hosts: 'placeholder-to-avoid-warning'
           
-      - name: Run Deployment on EC2 Server
+      - name: Run Deployment on EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: 3.12.248.83
-          username: ubuntu 
-          key: ${{ secrets.SSH_PRIVATE_KEY }} 
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            echo "Navigating to project directory..."
-            cd /home/ubuntu/ticketing-system 
-            
-            echo "Pulling latest code..."
+            cd /home/ubuntu/ticketing-system
             git pull origin ${{ github.ref_name }}
-            
-            echo "Logging into GHCR..."
             echo ${{ secrets.PAT_GHCR }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            
-            echo "Pulling latest Docker images and restarting services..."
             docker compose pull
             docker compose up -d --force-recreate
-            
-            echo "Deployment to EC2 complete."

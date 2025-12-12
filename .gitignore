@@ -5,6 +5,7 @@ node_modules
 .venv/
 x.html
 
+.secrets
 
 __pycache__/
 # local env files

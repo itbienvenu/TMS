@@ -25,6 +25,9 @@ build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 [/home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/companies/Views/BusesView.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
+[/home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/companies/Views/ChatView.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
 [/home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/companies/Views/DashboardView.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
@@ -41,9 +44,6 @@ build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
 [/home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/companies/Views/StationsView.axaml]
-build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
-
-[/home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/companies/Views/SuperAdminDashboard.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
 [/home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/companies/Views/TeamView.axaml]

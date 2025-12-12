@@ -25,6 +25,11 @@ services:
       POSTGRES_USER: itbienvenu
       POSTGRES_PASSWORD: 123
       POSTGRES_DB: ticketing_system
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U itbienvenu -d ticketing_system" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     ports:
       - "5433:5432"
     volumes:
@@ -55,7 +60,8 @@ services:
     ports:
       - "8001:8001"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - ticketing-net
     restart: always
@@ -70,7 +76,8 @@ services:
     ports:
       - "8002:8002"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - ticketing-net
     restart: always
@@ -88,7 +95,8 @@ services:
     ports:
       - "8003:8003"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - ticketing-net
     restart: always
@@ -107,7 +115,8 @@ services:
     ports:
       - "8004:8004"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - ticketing-net
     restart: always
@@ -126,7 +135,8 @@ services:
     ports:
       - "8005:8005"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - ticketing-net
     restart: always
@@ -144,7 +154,8 @@ services:
     ports:
       - "8006:8006"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - ticketing-net
     restart: always
@@ -162,7 +173,8 @@ services:
     ports:
       - "8007:8007"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - ticketing-net
     restart: always
@@ -181,7 +193,8 @@ services:
     ports:
       - "8008:8008"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - ticketing-net
     restart: always
