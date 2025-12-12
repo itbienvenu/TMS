@@ -24,6 +24,7 @@ public partial class ChatViewModel : ViewModelBase
 {
     private readonly UserService _userService;
     private readonly HttpClient _httpClient;
+    private string _sessionId = string.Empty;
     private string? _companyId;
 
     [ObservableProperty]
@@ -41,6 +42,12 @@ public partial class ChatViewModel : ViewModelBase
         _userService = new UserService(token);
         _httpClient = new HttpClient(); 
         
+        // Generate or retrieve session ID
+        if (string.IsNullOrEmpty(_sessionId))
+        {
+             _sessionId = Guid.NewGuid().ToString();
+        }
+
         Messages.Add(new ChatMessage { Role = "assistant", Content = "Hello! I can help you manage your fleet. Ask me to list your buses or suggest schedules." });
         
         InitializeAsync();
@@ -52,11 +59,16 @@ public partial class ChatViewModel : ViewModelBase
         try 
         {
              var user = await _userService.GetCurrentUserAsync();
-             _companyId = user.CompanyId;
+             if (user != null)
+             {
+                 _companyId = user.CompanyId;
+                 // System.Console.WriteLine($"DEBUG: Fetched Company ID: {_companyId}");
+             }
         }
-        catch
+        catch (Exception ex)
         {
-             // If failed, we might be offline or logged out, simple ignore for demo
+             // Log error to chat for debugging
+             Messages.Add(new ChatMessage { Role = "assistant", Content = $"System Warning: Could not fetch user context ({ex.Message}). Some features may not work." });
         }
     }
 
@@ -73,10 +85,22 @@ public partial class ChatViewModel : ViewModelBase
 
         try
         {
+            // Retry fetching company ID if missing
+            if (string.IsNullOrEmpty(_companyId))
+            {
+                try 
+                {
+                    var user = await _userService.GetCurrentUserAsync();
+                    _companyId = user?.CompanyId;
+                }
+                catch { /* Ignore second failure */ }
+            }
+
             var request = new 
             {
                 message = userMsg,
                 role = "company_admin",
+                session_id = _sessionId,
                 context = new { company_id = _companyId ?? "" }
             };
 
