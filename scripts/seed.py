@@ -101,6 +101,7 @@ def seed_data():
         # KBS Admin
         comp_admin_email = "admin@kbs.rw"
         comp_admin = db.query(CompanyUser).filter(CompanyUser.email == comp_admin_email).first()
+        kbs_admin_role = None
         if not comp_admin:
             print(f"Creating KBS Admin: {comp_admin_email}...")
             comp_admin = CompanyUser(
@@ -118,6 +119,9 @@ def seed_data():
             db.add(kbs_admin_role)
             comp_admin.roles.append(kbs_admin_role)
             db.add(comp_admin)
+        else:
+            # If admin exists, try to find the role
+            kbs_admin_role = db.query(Role).filter(Role.name == "admin", Role.company_id == company.id).first()
 
         # Stations
         stations = ["Nyabugogo", "Musanze", "Rubavu", "Huye"]
