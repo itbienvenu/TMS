@@ -7,7 +7,7 @@ import uuid
 # Add current dir to path
 sys.path.append(os.getcwd())
 
-from services.common.models import Base, User, Company, CompanyUser, Bus, Route, BusStation, Driver, Role
+from services.common.models import Base, User, Company, CompanyUser, Bus, Route, BusStation, Driver, Role, Permission
 from services.common.database import get_db_engine, get_db_session
 
 try:
@@ -163,6 +163,47 @@ def seed_data():
                  created_at=datetime.now(UTC)
              )
              db.add(driver)
+
+        # Permissions List
+        permissions_list = [
+            'create_user', 'view_user', 'update_user', 'delete_user',
+            'view_ticket', 'update_ticket', 'delete_ticket',
+            'create_payment', 'view_payment', 'update_payment', 'delete_payment',
+            'create_role', 'view_role', 'update_role', 'delete_role', 'assign_role',
+            'access_dashboard', 'manage_permissions', 'create_permission', 'assign_permission',
+            'get_permission', 'delete_permission', 'view_users', 'list_all_roles',
+            'create_route', 'update_route', 'delete_route', 'assign_bus_route',
+            'delete_db', 'create_ticket', 'see_all_tickets', 'delete_bus',
+            'create_station', 'update_station', 'delete_station',
+             'create_bus', 'update_bus', 'view_bus',
+             'create_schedule', 'view_schedule', 'update_schedule', 'delete_schedule'
+        ]
+
+        print("Seeding Permissions...")
+        
+        # Function to ensure permissions exist for a company and return them
+        def ensure_company_permissions(company_id_val, role_obj):
+             for perm_name in permissions_list:
+                # check if exist for this company
+                perm = db.query(Permission).filter(Permission.name == perm_name, Permission.company_id == company_id_val).first()
+                if not perm:
+                    perm = Permission(id=str(uuid.uuid4()), name=perm_name, company_id=company_id_val)
+                    db.add(perm)
+                    db.flush() # get ID
+                
+                # Assign to role
+                if perm not in role_obj.permissions:
+                    role_obj.permissions.append(perm)
+
+        # Assign to Super Admin
+        if super_role:
+             # For super admin we might want global permissions (company_id=None) or specific to their company
+             # Let's assign them permissions scoped to the Admin Company
+             ensure_company_permissions(admin_company.id, super_role)
+
+        # Assign to KBS Admin
+        if kbs_admin_role:
+             ensure_company_permissions(company.id, kbs_admin_role)
 
         db.commit()
         print("Seeding Complete.")
