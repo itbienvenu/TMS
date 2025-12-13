@@ -43,3 +43,7 @@ class UserOut(BaseModel):
     email: EmailStr
     phone_number: Optional[str] = None
     role: Optional[str] = None
+
+class DriverLogin(BaseModel):
+    email: EmailStr
+    password: str

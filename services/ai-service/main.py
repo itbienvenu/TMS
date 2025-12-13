@@ -7,6 +7,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="AI Agent Service", version="1.0.0")
 
+from app.common.db import engine
+from app.common.models import Base
+
+Base.metadata.create_all(bind=engine)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Allow all for dev; restrict in prod

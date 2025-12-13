@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Send, MessageCircle, X, Loader } from 'lucide-react';
 
 interface Message {
@@ -20,7 +22,16 @@ const ChatWidget: React.FC = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
+    const [sessionId, setSessionId] = useState('');
+
     useEffect(() => {
+        // Generate or retrieve session ID
+        let storedSessionId = localStorage.getItem('chat_session_id');
+        if (!storedSessionId) {
+            storedSessionId = crypto.randomUUID();
+            localStorage.setItem('chat_session_id', storedSessionId);
+        }
+        setSessionId(storedSessionId);
         scrollToBottom();
     }, [messages]);
 
@@ -39,7 +50,8 @@ const ChatWidget: React.FC = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     message: userMsg.content,
-                    role: "customer"
+                    role: "customer",
+                    session_id: sessionId
                 })
             });
 
@@ -92,7 +104,17 @@ const ChatWidget: React.FC = () => {
                                     className={`p-2 rounded-3 ${msg.role === 'user' ? 'bg-primary text-white' : 'bg-white border'}`}
                                     style={{ maxWidth: '80%', fontSize: '0.9rem' }}
                                 >
-                                    {msg.content}
+                                    <ReactMarkdown
+                                        remarkPlugins={[remarkGfm]}
+                                        components={{
+                                            p: ({ node, ...props }) => <p className="mb-0" {...props} />,
+                                            ul: ({ node, ...props }) => <ul className="mb-0 ps-3" {...props} />,
+                                            ol: ({ node, ...props }) => <ol className="mb-0 ps-3" {...props} />,
+                                            li: ({ node, ...props }) => <li className="mb-1" {...props} />
+                                        }}
+                                    >
+                                        {msg.content}
+                                    </ReactMarkdown>
                                 </div>
                             </div>
                         ))}

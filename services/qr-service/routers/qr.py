@@ -6,8 +6,9 @@ import hmac
 import hashlib
 import os
 from common.database import get_db_engine, get_db_session
-from database.models import Ticket, BusStation, Ticket
+from database.models import Ticket, BusStation, Ticket, Driver
 from methods.permissions import check_permission
+from methods.functions import get_current_driver
 
 def get_db():
     engine = get_db_engine("qr")
@@ -22,9 +23,14 @@ SECRET_KEY = os.environ.get("TICKET_SECRET_KEY", "fallback_secret")
 key_bytes = SECRET_KEY.encode()
 
 @router.post("/verify")
-async def verify_qr_code(qr_token: str = Body(..., embed=True), db: Session = Depends(get_db)):
+async def verify_qr_code(
+    qr_token: str = Body(..., embed=True), 
+    db: Session = Depends(get_db),
+    driver: Driver = Depends(get_current_driver)
+):
     """
     Separate QR verification service.
+    Requires Driver Authentication.
     """
     try:
         decoded = base64.urlsafe_b64decode(qr_token.encode())
@@ -50,6 +56,10 @@ async def verify_qr_code(qr_token: str = Body(..., embed=True), db: Session = De
         if not ticket:
             raise HTTPException(status_code=404, detail="Ticket not found")
         
+        # --- Driver Validation Checks ---
+        if ticket.company_id != driver.company_id:
+             raise HTTPException(status_code=403, detail="Ticket is invalid for this company.")
+        
         if ticket.mode != "active":
             raise HTTPException(status_code=400, detail="Ticket is not active")
         
@@ -69,5 +79,7 @@ async def verify_qr_code(qr_token: str = Body(..., embed=True), db: Session = De
             "created_at": ticket.created_at.isoformat() if ticket.created_at else None
         }
         
+    except HTTPException as he:
+        raise he
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid QR code: {str(e)}")

@@ -130,6 +130,41 @@ def seed_data():
             station_objs[s_name] = st
             
         db.commit()
+
+        # Seed Bus and Driver
+        bus_plate = "RAC 777 Z"
+        bus = db.query(Bus).filter(Bus.plate_number == bus_plate).first()
+        if not bus:
+             print(f"Creating Bus: {bus_plate}...")
+             bus = Bus(
+                 id=str(uuid.uuid4()),
+                 plate_number=bus_plate,
+                 capacity=30,
+                 available_seats=30,
+                 company_id=company.id,
+                 created_at=datetime.now(UTC)
+             )
+             db.add(bus)
+             db.flush()
+        
+        driver_email = "driver@kbs.rw"
+        driver = db.query(Driver).filter(Driver.email == driver_email).first()
+        if not driver:
+             print(f"Creating Driver: {driver_email}...")
+             driver = Driver(
+                 id=str(uuid.uuid4()),
+                 full_name="John Driver",
+                 email=driver_email,
+                 phone_number="0789999999",
+                 password_hash=get_password_hash("driver123"),
+                 license_number="DL-123456",
+                 company_id=company.id,
+                 bus_id=bus.id,
+                 created_at=datetime.now(UTC)
+             )
+             db.add(driver)
+
+        db.commit()
         print("Seeding Complete.")
         
     except Exception as e:

@@ -15,12 +15,9 @@ from methods.functions import (
     verify_password
 )
 from methods.permissions import check_permission, get_current_company_user
-from schemas.LoginRegisteScheme import RegisterUser, LoginUser, UpdateUser, UserOut, CompanyLoginStart, CompanyLoginVerify
-
-# In main.py we can override get_db dependency or setup a global engine in common/database.py
-# For simplicity, we wil import get_db from a local dependency wrapper.
+from schemas.LoginRegisteScheme import RegisterUser, LoginUser, UpdateUser, UserOut, CompanyLoginStart, CompanyLoginVerify, DriverLogin
 from common.database import get_db_engine, get_db_session
-from database.models import CompanyUser, LoginOTP
+from database.models import CompanyUser, LoginOTP, Driver
 
 # Simple Dependency Wrapper
 def get_db():
@@ -138,6 +135,38 @@ async def company_login_verify(
         "message": "Login successful",
         "access_token": token,
         "token_type": "bearer",
+    }
+
+
+@router.post("/driver/login")
+async def driver_login(payload: DriverLogin, db: Session = Depends(get_db)):
+    # Authenticate Driver
+    driver = db.query(Driver).filter(Driver.email == payload.email).first()
+    if not driver:
+        # Avoid user enumeration (though for drivers it might be less critical than public users)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    
+    if not verify_password(payload.password, driver.password_hash):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+    
+    # Create Token
+    token = create_access_token(
+        data={
+            "sub": str(driver.id),
+            "company_id": str(driver.company_id),
+            "bus_id": str(driver.bus_id) if driver.bus_id else None,
+            "user_type": "driver"
+        },
+        expires_delta=timedelta(days=7)  # Long lasting session for mobile
+    )
+    
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "driver_id": driver.id,
+        "full_name": driver.full_name,
+        "company_id": driver.company_id,
+        "bus_id": driver.bus_id
     }
 
 

@@ -11,20 +11,42 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+from app.common.db import get_db
+from app.common.models import ChatHistory
+from sqlalchemy.orm import Session
+from sqlalchemy import desc
+
 router = APIRouter(prefix="/api/v1/chat", tags=["AI Agent Chat"])
 
 import google.generativeai as genai
 from google.generativeai.types import FunctionDeclaration, Tool
 
 # Initialize Clients
-print(f"DEBUG: GEMINI_API_KEY='{os.getenv('GEMINI_API_KEY')}'")
 
 USE_GEMINI = False
+USE_DEEPSEEK = False
+USE_GROQ = False
 
-if os.getenv("GEMINI_API_KEY"):
+if os.getenv("GROQ_API_KEY"):
+    from openai import OpenAI
+    USE_GROQ = True
+    GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+    client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
+    MODEL_NAME = "llama-3.3-70b-versatile"
+    print(f"INFO: Using Groq Provider with model: {MODEL_NAME}")
+
+elif os.getenv("DEEPSEEK_API_KEY"):
+    from openai import OpenAI
+    USE_DEEPSEEK = True
+    DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
+    client = OpenAI(api_key=DEEPSEEK_API_KEY, base_url="https://api.deepseek.com")
+    MODEL_NAME = "deepseek-chat"
+    print(f"INFO: Using DeepSeek Provider with model: {MODEL_NAME}")
+
+elif os.getenv("GEMINI_API_KEY"):
     USE_GEMINI = True
     genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-    MODEL_NAME = "gemini-2.0-flash"
+    MODEL_NAME = "gemini-flash-latest"
     print(f"INFO: Using Google Gemini Provider with model: {MODEL_NAME}")
     try:
         print("DEBUG: Available Gemini Models:")
@@ -34,7 +56,7 @@ if os.getenv("GEMINI_API_KEY"):
     except Exception as e:
         print(f"WARNING: Could not list models: {e}")
 else:
-    print("WARNING: No GEMINI_API_KEY found. Using MockAI.")
+    print("WARNING: No AI API KEY found. Using MockAI.")
     class MockMessage:
         def __init__(self, content, tool_calls=None):
             self.content = content
@@ -86,7 +108,7 @@ else:
             if messages[-1]['role'] == 'tool':
                 return MockCompletion(MockMessage("Based on the database, I found 3 buses available for that route."))
 
-            return MockCompletion(MockMessage(f"I am running in MOCK MODE (No Gemini Key). You said: {last_msg}"))
+            return MockCompletion(MockMessage(f"I am running in MOCK MODE (No API Key). You said: {last_msg}"))
 
     client = MockClient()
     MODEL_NAME = "mock-gpt"
@@ -94,6 +116,7 @@ else:
 class ChatRequest(BaseModel):
     message: str
     role: str = "customer"
+    session_id: Optional[str] = None
     context: Optional[Dict[str, Any]] = {}
 
 class ChatResponse(BaseModel):
@@ -116,7 +139,7 @@ def convert_tools_to_gemini(tools_def):
     return gemini_funcs
 
 @router.post("/", response_model=ChatResponse)
-async def chat_endpoint(req: ChatRequest):
+async def chat_endpoint(req: ChatRequest, db: Session = Depends(get_db)):
     """
     Main chat endpoint.
     """
@@ -141,6 +164,19 @@ async def chat_endpoint(req: ChatRequest):
         raise HTTPException(status_code=400, detail="Invalid role")
 
     try:
+        # --- Memory: Fetch last 10 messages (Universal for all providers) ---
+        history = []
+        if req.session_id:
+            past_messages = db.query(ChatHistory).filter(ChatHistory.session_id == req.session_id).order_by(desc(ChatHistory.created_at)).limit(10).all()
+            past_messages.reverse()
+            # We construct provider-specific history inside the blocks below or map it here
+            # For simplicity, we'll keep the raw DB objects and map them later
+
+        # Save USER message to DB
+        if req.session_id:
+            db.add(ChatHistory(session_id=req.session_id, role="user", content=req.message))
+            db.commit()
+
         if USE_GEMINI:
             # --- GEMINI PATH ---
             model = genai.GenerativeModel(MODEL_NAME)
@@ -149,14 +185,16 @@ async def chat_endpoint(req: ChatRequest):
             if gemini_tools:
                 model = genai.GenerativeModel(MODEL_NAME, tools=[Tool(function_declarations=gemini_tools)])
 
-            chat = model.start_chat(history=[
-                {"role": "user", "parts": system_prompt}
-            ])
+            chat_history = [{"role": "user", "parts": system_prompt}]
+            
+            if req.session_id:
+                 for msg in past_messages:
+                    chat_history.append({"role": msg.role, "parts": msg.content})
+
+            chat = model.start_chat(history=chat_history)
             
             response = chat.send_message(req.message)
             
-            # Check for function calls
-            # Gemini response.candidates[0].content.parts[0].function_call
             if response.candidates and response.candidates[0].content.parts:
                 part = response.candidates[0].content.parts[0]
                 
@@ -169,8 +207,6 @@ async def chat_endpoint(req: ChatRequest):
                         # Execute Tool
                         result = tool_executor(func_name, func_args)
                         
-                        # Send result back
-                        # Gemini expects a FunctionResponse
                         from google.ai.generativelanguage_v1beta.types import content
                         
                         function_response = {
@@ -181,18 +217,34 @@ async def chat_endpoint(req: ChatRequest):
                         }
                         
                         final_res = chat.send_message([function_response])
+                        
+                        # Save MODEL response (after tool use) to DB
+                        if req.session_id:
+                            db.add(ChatHistory(session_id=req.session_id, role="model", content=final_res.text))
+                            db.commit()
+                            
                         return ChatResponse(response=final_res.text)
                         
                     except Exception as e:
                          return ChatResponse(response=f"Error executing tool {func_name}: {str(e)}")
             
+            # Save MODEL response to DB
+            if req.session_id:
+                db.add(ChatHistory(session_id=req.session_id, role="model", content=response.text))
+                db.commit()
+
             return ChatResponse(response=response.text)
 
         else:
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": req.message}
-            ]
+            messages = [{"role": "system", "content": system_prompt}]
+            
+            if req.session_id:
+                for msg in past_messages:
+                    # Map 'model' role from DB to 'assistant' for OpenAI
+                    role = "assistant" if msg.role == "model" else msg.role
+                    messages.append({"role": role, "content": msg.content})
+
+            messages.append({"role": "user", "content": req.message})
 
             completion = client.chat.completions.create(
                 model=MODEL_NAME,
@@ -204,6 +256,10 @@ async def chat_endpoint(req: ChatRequest):
             msg = completion.choices[0].message
             
             if not msg.tool_calls:
+                # Save response
+                if req.session_id:
+                    db.add(ChatHistory(session_id=req.session_id, role="model", content=msg.content))
+                    db.commit()
                 return ChatResponse(response=msg.content)
 
             messages.append(msg)
@@ -230,10 +286,18 @@ async def chat_endpoint(req: ChatRequest):
                 messages=messages
             )
             
+            final_content = final_completion.choices[0].message.content
+             # Save final response
+            if req.session_id:
+                db.add(ChatHistory(session_id=req.session_id, role="model", content=final_content))
+                db.commit()
+
             return ChatResponse(
-                response=final_completion.choices[0].message.content
+                response=final_content
             )
 
     except Exception as e:
         print(f"LLM Error: {e}")
-        return ChatResponse(response="I'm sorry, I encountered an error connecting to the AI Provider (Gemini). Please check server logs.")
+        import traceback
+        traceback.print_exc()
+        return ChatResponse(response=f"I'm sorry, I encountered an error connecting to the AI Provider: {str(e)}")

@@ -3,7 +3,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from passlib.hash import bcrypt
 from database.dbs import Base, engine, get_db
-from database.models import User, CompanyUser, Route, Role, Permission, LoginOTP
+from database.models import User, CompanyUser, Route, Role, Permission, LoginOTP, Driver
 from schemas.LoginRegisteScheme import RegisterUser, LoginUser, UserOut
 from schemas.RoutesScheme import RegisterRoute, UpdateRoute, RouteOut
 from jose import jwt, JWTError
@@ -163,6 +163,36 @@ def get_current_company_user(credentials: HTTPAuthorizationCredentials = Depends
     if not company_user:
         raise credentials_exception
     return company_user
+
+
+def get_current_driver(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme), db: Session = Depends(get_db)):
+    token = credentials.credentials
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail=f"Could not validate Credentials",
+        headers={"WWW-Authenticate": "Bearer"}
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: str = payload.get("sub")
+        user_type: str = payload.get("user_type", "user")
+        if user_id is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+
+    if user_type != "driver":
+         # If not a driver, raise 403.
+         # (Or we could allow CompanyUser to impersonate, but let's be strict for now)
+         raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This endpoint requires driver authentication"
+        )
+    
+    driver = db.query(Driver).filter(Driver.id == user_id).first()
+    if not driver:
+        raise credentials_exception
+    return driver
 
 
 
