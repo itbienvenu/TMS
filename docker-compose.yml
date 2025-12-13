@@ -51,13 +51,13 @@ services:
       dockerfile: services/auth-service/Dockerfile
     image: bienvenugashema/ticketing-auth-service:latest
     environment:
-      - DATABASE_URL=postgresql://itbienvenu:123@postgres:5432/ticketing_system
-      - JWT_SECRET=supersecretkey
-      - SECRET_KEY=supersecretkey
-      - ALGORITHM=HS256
-      - ACCESS_TOKEN_EXPIRE_MINUTES=30
-      - GMAIL_SMTP_USER=bienvenugashema@gmail.com
-      - GMAIL_SMTP_PASSWORD=dpev kuni hoea erpu
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - SECRET_KEY=${SECRET_KEY}
+      - ALGORITHM=${ALGORITHM}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
+      - GMAIL_SMTP_USER=${GMAIL_SMTP_USER}
+      - GMAIL_SMTP_PASSWORD=${GMAIL_SMTP_PASSWORD}
     ports:
       - "8001:8001"
     depends_on:
@@ -73,7 +73,7 @@ services:
       dockerfile: services/user-service/Dockerfile
     image: bienvenugashema/ticketing-user-service:latest
     environment:
-      - DATABASE_URL=postgresql://itbienvenu:123@postgres:5432/ticketing_system
+      - DATABASE_URL=${DATABASE_URL}
     ports:
       - "8002:8002"
     depends_on:
@@ -89,10 +89,10 @@ services:
       dockerfile: services/company-service/Dockerfile
     image: bienvenugashema/ticketing-company-service:latest
     environment:
-      - DATABASE_URL=postgresql://itbienvenu:123@postgres:5432/ticketing_system
-      - SECRET_KEY=supersecretkey
-      - ALGORITHM=HS256
-      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+      - DATABASE_URL=${DATABASE_URL}
+      - SECRET_KEY=${SECRET_KEY}
+      - ALGORITHM=${ALGORITHM}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
     ports:
       - "8003:8003"
     depends_on:
@@ -108,11 +108,11 @@ services:
       dockerfile: services/ticketing-service/Dockerfile
     image: bienvenugashema/ticketing-ticketing-service:latest
     environment:
-      - DATABASE_URL=postgresql://itbienvenu:123@postgres:5432/ticketing_system
-      - TICKET_SECRET_KEY=superqrsecret
-      - SECRET_KEY=supersecretkey
-      - ALGORITHM=HS256
-      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+      - DATABASE_URL=${DATABASE_URL}
+      - TICKET_SECRET_KEY=${TICKET_SECRET_KEY}
+      - SECRET_KEY=${SECRET_KEY}
+      - ALGORITHM=${ALGORITHM}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
     ports:
       - "8004:8004"
     depends_on:
@@ -128,11 +128,11 @@ services:
       dockerfile: services/qr-service/Dockerfile
     image: bienvenugashema/ticketing-qr-service:latest
     environment:
-      - DATABASE_URL=postgresql://itbienvenu:123@postgres:5432/ticketing_system
-      - TICKET_SECRET_KEY=superqrsecret
-      - SECRET_KEY=supersecretkey
-      - ALGORITHM=HS256
-      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+      - DATABASE_URL=${DATABASE_URL}
+      - TICKET_SECRET_KEY=${TICKET_SECRET_KEY}
+      - SECRET_KEY=${SECRET_KEY}
+      - ALGORITHM=${ALGORITHM}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
     ports:
       - "8005:8005"
     depends_on:
@@ -148,10 +148,10 @@ services:
       dockerfile: services/payment-service/Dockerfile
     image: bienvenugashema/ticketing-payment-service:latest
     environment:
-      - DATABASE_URL=postgresql://itbienvenu:123@postgres:5432/ticketing_system
-      - SECRET_KEY=supersecretkey
-      - ALGORITHM=HS256
-      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+      - DATABASE_URL=${DATABASE_URL}
+      - SECRET_KEY=${SECRET_KEY}
+      - ALGORITHM=${ALGORITHM}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
     ports:
       - "8006:8006"
     depends_on:
@@ -167,10 +167,10 @@ services:
       dockerfile: services/super-admin-service/Dockerfile
     image: bienvenugashema/ticketing-super-admin-service:latest
     environment:
-      - DATABASE_URL=postgresql://itbienvenu:123@postgres:5432/ticketing_system
-      - SECRET_KEY=67ytyugyhu5677ytghbjnhgyfttyuhgt
-      - ALGORITHM=HS256
-      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+      - DATABASE_URL=${DATABASE_URL}
+      - SECRET_KEY=${SECRET_KEY}
+      - ALGORITHM=${ALGORITHM}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
     ports:
       - "8007:8007"
     depends_on:
