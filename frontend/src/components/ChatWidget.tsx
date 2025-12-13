@@ -45,7 +45,7 @@ const ChatWidget: React.FC = () => {
         setIsLoading(true);
 
         try {
-            const res = await fetch('http://localhost:8008/api/v1/chat/', {
+            const res = await fetch('http://3.12.248.83:8000/api/v1/chat/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
