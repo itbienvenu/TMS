@@ -15,11 +15,11 @@ public class PaymentService : ApiService
             SetAuthToken(token);
     }
 
-    public async Task<List<Payment>> GetAllPaymentsAsync()
+    public Task<List<Payment>> GetAllPaymentsAsync()
     {
         // Note: This endpoint might need to be created or use a different path
         // For now, we'll try to get payments through tickets
-        return new List<Payment>();
+        return Task.FromResult(new List<Payment>());
     }
 
     public async Task<Payment> GetPaymentByIdAsync(string id)

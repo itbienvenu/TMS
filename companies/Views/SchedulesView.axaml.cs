@@ -26,11 +26,11 @@ public partial class SchedulesView : UserControl
         }
     }
 
-    private async void OnEditSchedule(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    private void OnEditSchedule(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         if (DataContext is SchedulesViewModel vm && sender is Button btn && btn.DataContext is Schedule schedule)
         {
-            await vm.EditScheduleCommand.ExecuteAsync(schedule);
+            vm.EditScheduleCommand.Execute(schedule);
         }
     }
 

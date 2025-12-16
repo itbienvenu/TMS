@@ -2,8 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers.tickets import router as tickets_router
 from common.database import get_db_engine, Base
+from common.middleware import EncryptionMiddleware
 
 app = FastAPI(title="Ticketing Service", docs_url="/docs", openapi_url="/openapi.json")
+
+app.add_middleware(EncryptionMiddleware)
 
 # CORS
 app.add_middleware(

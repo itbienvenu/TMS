@@ -4,6 +4,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CompanyDashboard.Services;
 
+using CompanyDashboard.Config;
+
 namespace CompanyDashboard.ViewModels;
 
 public partial class LoginViewModel : ViewModelBase
@@ -41,6 +43,8 @@ public partial class LoginViewModel : ViewModelBase
     {
         _authService = new AuthService();
     }
+    
+    public string ApiBaseUrl => ApiConfig.BaseUrl;
 
     [RelayCommand]
     private async Task StartLoginAsync()
@@ -58,8 +62,11 @@ public partial class LoginViewModel : ViewModelBase
 
         try
         {
-            await _authService.StartLoginAsync(LoginEmail, Password);
+            var cleanEmail = LoginEmail?.Trim() ?? string.Empty;
+            await _authService.StartLoginAsync(cleanEmail, Password);
             IsOtpStep = true;
+            // Update the LoginEmail with cleaned version if needed, or just use it for the request
+            LoginEmail = cleanEmail;
             InfoMessage = "OTP has been sent to your registered email. Please check your inbox.";
             OnPropertyChanged(nameof(HasInfoMessage));
         }

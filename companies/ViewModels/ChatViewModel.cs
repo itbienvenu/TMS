@@ -105,7 +105,8 @@ public partial class ChatViewModel : ViewModelBase
             };
 
             // Using local URL as requested
-            var response = await _httpClient.PostAsJsonAsync("http://3.12.248.83:8000/api/v1/chat/", request);
+            var response = await _httpClient.PostAsJsonAsync("http://127.0.0.1:8000/api/v1/chat/", request);
+            // var response = await _httpClient.PostAsJsonAsync("http://3.12.248.83:8000/api/v1/chat/", request);
             
             if (response.IsSuccessStatusCode)
             {

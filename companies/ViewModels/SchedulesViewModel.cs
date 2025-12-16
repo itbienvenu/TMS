@@ -169,7 +169,7 @@ public partial class SchedulesViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private async Task EditScheduleAsync(Schedule schedule)
+    private void EditSchedule(Schedule schedule)
     {
         SelectedSchedule = schedule;
         SelectedBusId = schedule.BusId;

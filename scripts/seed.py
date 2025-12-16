@@ -180,7 +180,8 @@ def seed_data():
             'delete_db', 'create_ticket', 'see_all_tickets', 'delete_bus',
             'create_station', 'update_station', 'delete_station',
              'create_bus', 'update_bus', 'view_bus',
-             'create_schedule', 'view_schedule', 'update_schedule', 'delete_schedule'
+             'create_schedule', 'view_schedule', 'update_schedule', 'delete_schedule',
+            'chat_with_ai', 'manage_ai_context'
         ]
 
         print("Seeding Permissions...")

@@ -30,7 +30,9 @@ public class CompanyService : ApiService
     
     public async Task<Company> GetCompanyAsync(string id)
     {
-        return await GetAsync<Company>($"companies/{id}");
+        var result = await GetAsync<Company>($"companies/{id}");
+        if (result == null) throw new Exception("Company not found");
+        return result;
     }
     
     public async Task CreateCompanyAsync(CompanyCreate company)
@@ -45,6 +47,8 @@ public class CompanyService : ApiService
 
     public async Task<CompanyUser> GetMyInfoAsync()
     {
-        return await GetAsync<CompanyUser>("companies/me");
+        var result = await GetAsync<CompanyUser>("companies/me");
+        if (result == null) throw new Exception("User info not found");
+        return result;
     }
 }

@@ -138,30 +138,110 @@ def convert_tools_to_gemini(tools_def):
         ))
     return gemini_funcs
 
+from fastapi.security import OAuth2PasswordBearer
+from jose import jwt, JWTError
+
+SECRET_KEY = os.getenv("SECRET_KEY", "fallback_secret")
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
+
+def get_current_user_optional(token: str = Depends(oauth2_scheme)):
+    if not token:
+        return None
+    try:
+        print(f"DEBUG: Decoding token: {token[:10]}...")
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            return None
+        # Add original token to payload for passing to downstream services
+        payload["token"] = token 
+        payload["user_id"] = user_id
+        return payload
+    except JWTError as e:
+        print(f"DEBUG: JWT Error: {e}")
+        return None
+
 @router.post("/", response_model=ChatResponse)
-async def chat_endpoint(req: ChatRequest, db: Session = Depends(get_db)):
+async def chat_endpoint(req: ChatRequest, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user_optional)):
     """
     Main chat endpoint.
     """
-    system_prompt = "You are a helpful AI assistant for a Bus Ticketing System."
-    tools = []
-    tool_executor = None
+    # ... inside chat_endpoint ...
+    
+    # 1. Fetch User and Permissions if logged in
+    user_permissions = set()
+    if current_user and current_user.get("user_id"):
+        from app.common.models import CompanyUser
+        user_db = db.query(CompanyUser).filter(CompanyUser.id == current_user["user_id"]).first()
+        if user_db:
+             # Add company_id to context if not present
+             req.context["company_id"] = user_db.company_id
+             
+             # Flatten permissions
+             for role in user_db.roles:
+                 for perm in role.permissions:
+                     user_permissions.add(perm.name)
+    
+    # ... Role Determination ...
+    if current_user:
+        # If user has 'chat_with_ai' permission, grant access (mapped to company_admin logic for now but filtered)
+        if "chat_with_ai" in user_permissions or "manage_ai_context" in user_permissions or "admin" in current_user.get("roles", []):
+             user_role = "company_admin" # Internal role name for "Company Staff with AI Access"
+        else:
+             user_role = "customer" # Default to customer if no special AI permission
 
-    # Role-Based Config
+        req.role = user_role
+
+    # ... Tool Selection ...
     if req.role == "customer":
         system_prompt += " You help customers find buses, check schedules, and track tickets. You DO NOT have access to private company data."
         tools = public_tools_definitions
-        tool_executor = execute_public_tool
+        tool_executor = lambda name, args: execute_public_tool(name, args, req.context)
+        
     elif req.role == "company_admin":
         system_prompt += f" You help company staff manage their fleet. Company ID: {req.context.get('company_id')}."
-        tools = company_tools_definitions
+        
+        # Filter Tools based on Permissions
+        allowed_tools = []
+        required_perms = {
+            "list_my_buses": "view_bus",
+            "create_bus_plan": "create_bus"
+            # Add mappings for other tools
+        }
+        
+        for tool in company_tools_definitions:
+            t_name = tool["function"]["name"]
+            # If specifically mapped, check permission. If not mapped, allow? Or deny?
+            # Safest: Deny unless mapped. Or 'chat_with_ai' creates base access.
+            # Let's say 'list_my_buses' needs 'view_bus'.
+            perm_needed = required_perms.get(t_name)
+            if not perm_needed:
+                 # If no specific perm required, maybe allow? 
+                 # Or assume it requires 'manage_ai_context'?
+                 allowed_tools.append(tool)
+            elif perm_needed in user_permissions:
+                 allowed_tools.append(tool)
+        
+        tools = allowed_tools
+        system_prompt += f" You have access to the following tools: {[t['function']['name'] for t in tools]}."
+        
         tool_executor = lambda name, args: execute_company_tool(name, args, req.context)
     elif req.role == "super_admin":
+        # ... same ...
         system_prompt += " You are the Super Admin assistant with full access to the database."
         tools = admin_tools_definitions
         tool_executor = execute_admin_tool
     else:
-        raise HTTPException(status_code=400, detail="Invalid role")
+        pass
+
+    if tool_executor is None:
+         if not current_user:
+             system_prompt += " You are a public assistant."
+             tools = public_tools_definitions
+             tool_executor = lambda name, args: execute_public_tool(name, args, req.context)
+         else:
+             raise HTTPException(status_code=400, detail="Invalid role or configuration")
 
     try:
         # --- Memory: Fetch last 10 messages (Universal for all providers) ---

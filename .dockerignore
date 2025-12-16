@@ -1,0 +1,10 @@
+seed_venv/
+frontend/node_modules/
+backend_legacy/
+companies/bin/
+companies/obj/
+driver-mobile/node_modules/
+super-admin-dashboard/node_modules/
+.git/
+.agent/
+.env

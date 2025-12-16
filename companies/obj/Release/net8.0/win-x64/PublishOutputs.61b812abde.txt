@@ -1,0 +1,5 @@
+/home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/companies/dist/win-x64/CompanyDashboard.pdb
+/home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/companies/dist/win-x64/av_libglesv2.dll
+/home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/companies/dist/win-x64/libHarfBuzzSharp.dll
+/home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/companies/dist/win-x64/libSkiaSharp.dll
+/home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/companies/dist/win-x64/CompanyDashboard.exe

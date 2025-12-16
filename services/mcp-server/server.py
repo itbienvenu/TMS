@@ -8,7 +8,8 @@ load_dotenv()
 # Initialize FastMCP server
 mcp = FastMCP("ticketing-system-context")
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://itbienvenu:123@3.12.248.83:5433/ticketing_system")
+DATABASE_URL = os.getenv("DATABASE_URL", 
+"postgresql://itbienvenu:123@127.0.0.1:5433/ticketing_system")
 
 try:
     engine = create_engine(DATABASE_URL)

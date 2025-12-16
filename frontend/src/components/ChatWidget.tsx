@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Send, MessageCircle, X, Loader } from 'lucide-react';
+import api from '../api/axios';
 
 interface Message {
     id: string;
@@ -23,6 +24,7 @@ const ChatWidget: React.FC = () => {
     };
 
     const [sessionId, setSessionId] = useState('');
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
 
     useEffect(() => {
         // Generate or retrieve session ID
@@ -33,8 +35,13 @@ const ChatWidget: React.FC = () => {
         }
         setSessionId(storedSessionId);
         scrollToBottom();
-    }, [messages]);
 
+        // Check Login
+        const token = localStorage.getItem('access_token');
+        setIsLoggedIn(!!token);
+    }, [messages, isOpen]);
+
+    // ... handleSubmit ... (Keep existing handleSubmit logic, simplified here for context)
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!input.trim()) return;
@@ -45,33 +52,31 @@ const ChatWidget: React.FC = () => {
         setIsLoading(true);
 
         try {
-            const res = await fetch('http://3.12.248.83:8000/api/v1/chat/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    message: userMsg.content,
-                    role: "customer",
-                    session_id: sessionId
-                })
+            // Use axios instance (handles encryption if configured)
+            const res = await api.post('/chat/', {
+                message: userMsg.content,
+                role: "customer", // Backend will override if token is present
+                session_id: sessionId
             });
 
-            const data = await res.json();
-
             setMessages(prev => [...prev, {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
-                content: data.response
+                content: res.data.response
             }]);
         } catch (err) {
+            console.error(err);
             setMessages(prev => [...prev, {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
-                content: "Sorry, I'm having trouble connecting to the server. please try again later."
+                content: "Sorry, I'm having trouble connecting to the server. Please try again later."
             }]);
         } finally {
             setIsLoading(false);
         }
     };
+
+    if (!isLoggedIn) return null; // Don't verify render if not logged in
 
     return (
         <div style={{ position: 'fixed', bottom: '20px', right: '20px', zIndex: 1000 }}>

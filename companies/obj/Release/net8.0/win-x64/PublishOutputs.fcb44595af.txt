@@ -1,0 +1,2 @@
+/home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/companies/dist/win-x64-single/CompanyDashboard.pdb
+/home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/companies/dist/win-x64-single/CompanyDashboard.exe
