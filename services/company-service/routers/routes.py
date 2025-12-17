@@ -82,7 +82,7 @@ async def get_all_routes(db: Session = Depends(get_db), user: dict = Depends(get
     OriginStation = aliased(BusStation)
     DestinationStation = aliased(BusStation)
 
-    routes = (
+    query = (
         db.query(
             Route.id, Route.price, Route.created_at, Route.company_id,
             OriginStation.name.label("origin"),
@@ -90,8 +90,13 @@ async def get_all_routes(db: Session = Depends(get_db), user: dict = Depends(get
         )
         .join(OriginStation, OriginStation.id == Route.origin_id)
         .join(DestinationStation, DestinationStation.id == Route.destination_id)
-        .all()
     )
+
+    # If user is a CompanyUser, filter by their company_id
+    if hasattr(user, "company_id") and user.company_id:
+        query = query.filter(Route.company_id == str(user.company_id))
+
+    routes = query.all()
 
     return [
         RouteOut(
