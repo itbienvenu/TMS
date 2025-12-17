@@ -41,7 +41,6 @@ const ChatWidget: React.FC = () => {
         setIsLoggedIn(!!token);
     }, [messages, isOpen]);
 
-    // ... handleSubmit ... (Keep existing handleSubmit logic, simplified here for context)
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!input.trim()) return;
@@ -55,8 +54,11 @@ const ChatWidget: React.FC = () => {
             // Use axios instance (handles encryption if configured)
             const res = await api.post('/chat/', {
                 message: userMsg.content,
-                role: "customer", // Backend will override if token is present
-                session_id: sessionId
+                role: "customer",
+                session_id: sessionId,
+                context: {
+
+                }
             });
 
             setMessages(prev => [...prev, {
@@ -75,8 +77,6 @@ const ChatWidget: React.FC = () => {
             setIsLoading(false);
         }
     };
-
-    if (!isLoggedIn) return null; // Don't verify render if not logged in
 
     return (
         <div style={{ position: 'fixed', bottom: '20px', right: '20px', zIndex: 1000 }}>

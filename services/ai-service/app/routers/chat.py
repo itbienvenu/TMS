@@ -170,6 +170,9 @@ async def chat_endpoint(req: ChatRequest, db: Session = Depends(get_db), current
     # ... inside chat_endpoint ...
     
     # 1. Fetch User and Permissions if logged in
+    system_prompt = "You are a helpful assistant for the Bus Ticketing System. You MUST use the provided tool definitions for any actions. Do NOT use <function> XML tags; the system expects standard tool_calls."
+    tools = []
+    tool_executor = None
     user_permissions = set()
     if current_user and current_user.get("user_id"):
         from app.common.models import CompanyUser
@@ -244,13 +247,10 @@ async def chat_endpoint(req: ChatRequest, db: Session = Depends(get_db), current
              raise HTTPException(status_code=400, detail="Invalid role or configuration")
 
     try:
-        # --- Memory: Fetch last 10 messages (Universal for all providers) ---
         history = []
         if req.session_id:
-            past_messages = db.query(ChatHistory).filter(ChatHistory.session_id == req.session_id).order_by(desc(ChatHistory.created_at)).limit(10).all()
+            past_messages = db.query(ChatHistory).filter(ChatHistory.session_id == req.session_id).order_by(desc(ChatHistory.created_at)).limit(20).all()
             past_messages.reverse()
-            # We construct provider-specific history inside the blocks below or map it here
-            # For simplicity, we'll keep the raw DB objects and map them later
 
         # Save USER message to DB
         if req.session_id:
@@ -319,12 +319,25 @@ async def chat_endpoint(req: ChatRequest, db: Session = Depends(get_db), current
             messages = [{"role": "system", "content": system_prompt}]
             
             if req.session_id:
+                # Limit to 20 previous messages to allow for better context
+                past_messages = db.query(ChatHistory).filter(ChatHistory.session_id == req.session_id).order_by(desc(ChatHistory.created_at)).limit(20).all()
+                past_messages.reverse()
+
                 for msg in past_messages:
-                    # Map 'model' role from DB to 'assistant' for OpenAI
                     role = "assistant" if msg.role == "model" else msg.role
-                    messages.append({"role": role, "content": msg.content})
+                    content = msg.content
+                    
+                    # If this message was a massive tool output or error, skip it or truncate heavily
+                    if len(content) > 200:
+                         content = content[:200] + "... [truncated]"
+                    messages.append({"role": role, "content": content})
 
             messages.append({"role": "user", "content": req.message})
+
+            print(f"DEBUG: Sending {len(messages)} messages to AI.")
+            # Debug total char count
+            total_chars = sum(len(str(m.get('content', ''))) for m in messages)
+            print(f"DEBUG: Total content chars: {total_chars}")
 
             completion = client.chat.completions.create(
                 model=MODEL_NAME,

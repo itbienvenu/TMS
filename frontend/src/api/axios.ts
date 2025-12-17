@@ -9,7 +9,7 @@ const api = axios.create({
     },
 });
 
-import { encryptPayload } from '../utils/security';
+// import { encryptPayload } from '../utils/security';
 
 // Request interceptor to add auth token
 api.interceptors.request.use(
@@ -24,18 +24,8 @@ api.interceptors.request.use(
             config.headers.Authorization = `Bearer ${token}`;
         }
 
-        // Encrypt body
-        if (config.data && !(config.data instanceof FormData) && config.method !== 'get') {
-            try {
-                // If already encrypted or empty, skip
-                // We wrap the original body
-                const encrypted = encryptPayload(config.data);
-                config.data = { encrypted_data: encrypted };
-                config.headers['X-Encrypted-Body'] = 'true';
-            } catch (e) {
-                console.error("Encryption error", e);
-            }
-        }
+        // Encryption disabled for MVP
+        // if (config.data && !(config.data instanceof FormData) && config.method !== 'get') { ... }
 
         return config;
     },

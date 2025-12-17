@@ -90,7 +90,7 @@ def execute_public_tool(name: str, args: dict, context: dict = None):
     
     elif name == "book_ticket":
          if not context or not context.get("token"):
-             return "Error: You must be logged in to book a ticket."
+             return "Please tell the user: 'You need to log in to book a ticket. Please sign in and try again.'"
              
          route_id = args.get("route_id")
          bus_id = args.get("bus_id")

@@ -1,4 +1,6 @@
 using System;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
@@ -203,6 +205,39 @@ public partial class TeamViewModel : ViewModelBase
         finally
         {
             IsLoading = false;
+        }
+    }
+
+    [RelayCommand]
+    private void OpenTrackingMap(Driver driver)
+    {
+        try
+        {
+            // Assuming we track by Bus ID, but here we have driver. 
+            // In a real scenario, we'd need the currently assigned Bus ID for this driver.
+            // For MVP, passing Driver ID or finding their bus via a service call is needed.
+            // Let's assume the frontend route /track/{param} accepts a vehicle/ticket ID.
+            // We'll direct them to a generic tracking dashboard or pass driver ID if supported.
+            // Using a placeholder bus ID for demo:
+            var url = $"http://localhost:5173/track/bus_{driver.Id}"; 
+            
+            // Cross-platform open url
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                Process.Start("xdg-open", url);
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                Process.Start("open", url);
+            }
+        }
+        catch (Exception ex)
+        {
+            DriverErrorMessage = $"Could not open map: {ex.Message}";
         }
     }
 

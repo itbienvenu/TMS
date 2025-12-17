@@ -66,8 +66,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const logout = async () => {
+        try {
+            // Stop background tracking if active
+            const { stopLocationTracking } = require('../services/LocationService');
+            await stopLocationTracking();
+        } catch (e) { console.error(e); }
+
         await SecureStore.deleteItemAsync('driver_token');
         await SecureStore.deleteItemAsync('driver_info');
+        await SecureStore.deleteItemAsync('current_bus_id'); // Clear bus context
         setToken(null);
         setDriverInfo(null);
         router.replace('/login');

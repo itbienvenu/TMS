@@ -8,7 +8,9 @@ class EncryptionMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         # Only check POST/PUT/PATCH
         if request.method in ["POST", "PUT", "PATCH"]:
-            encrypted_header = request.headers.get("X-Encrypted-Body")
+            encrypted_header = request.headers.get("x-encrypted-body") # Headers are case-insensitive, get returns value
+            print(f"DEBUG: Middleware method={request.method} header={encrypted_header} url={request.url}")
+            
             if encrypted_header == "true":
                 try:
                     # Consuming body to decrypt

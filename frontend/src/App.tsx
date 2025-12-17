@@ -9,6 +9,7 @@ import BookTicketPage from './pages/BookTicketPage';
 import PaymentPage from './pages/PaymentPage';
 import DashboardPage from './pages/DashboardPage';
 import MyTicketsPage from './pages/MyTicketsPage';
+import TrackBus from './pages/TrackBus';
 import { useAuthStore } from './store/authStore';
 
 import ChatWidget from './components/ChatWidget';
@@ -33,6 +34,7 @@ function App() {
           <Route path="/payment/:ticketId" element={<PaymentPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/my-tickets" element={<MyTicketsPage />} />
+          <Route path="/track/:ticketId" element={<TrackBus />} />
         </Routes>
         <ChatWidget />
       </div>

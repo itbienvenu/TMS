@@ -182,8 +182,8 @@ services:
 
   ai-service:
     build:
-      context: services/ai-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/ai-service/Dockerfile
     image: bienvenugashema/ticketing-ai-service:latest
     environment:
       - DATABASE_URL=postgresql://itbienvenu:123@postgres:5432/ticketing_system
@@ -198,6 +198,20 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - ticketing-net
+    restart: always
+  tracking-service:
+    build:
+      context: .
+      dockerfile: services/tracking-service/Dockerfile
+    image: bienvenugashema/ticketing-tracking-service:latest
+    environment:
+      - REDIS_URL=redis://redis:6379
+    ports:
+      - "8009:8009"
+    depends_on:
+      - redis
     networks:
       - ticketing-net
     restart: always

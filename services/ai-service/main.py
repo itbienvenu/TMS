@@ -4,7 +4,6 @@ import uvicorn
 import os
 
 from fastapi.middleware.cors import CORSMiddleware
-
 app = FastAPI(title="AI Agent Service", version="1.0.0")
 
 from app.common.db import engine
