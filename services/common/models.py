@@ -16,6 +16,14 @@ role_permissions = Table(
     Column("permission_id", String, ForeignKey("permissions.id", ondelete="CASCADE"), primary_key=True),
 )
 
+# users <-> roles (many-to-many) - GLOBAL/Regular users
+user_roles = Table(
+    "user_roles",
+    Base.metadata,
+    Column("user_id", String, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
+    Column("role_id", String, ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True),
+)
+
 # company_users <-> roles (many-to-many)
 company_user_roles = Table(
     "company_user_roles",
@@ -73,6 +81,9 @@ class User(Base):
     # Regular users don't have company_id - they're customers
     tickets = relationship("Ticket", back_populates="user")
     payments = relationship("Payment", back_populates="user")
+
+    # Many-to-Many relationship with Role
+    roles = relationship("Role", secondary="user_roles")
 
 
 class CompanyUser(Base):

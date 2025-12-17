@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from app.common.db import get_db
-from app.common.models import ChatHistory
+from app.common.models import ChatHistory, CompanyUser, Role, Permission
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
@@ -141,7 +141,7 @@ def convert_tools_to_gemini(tools_def):
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 
-SECRET_KEY = os.getenv("SECRET_KEY", "fallback_secret")
+SECRET_KEY = os.getenv("SECRET_KEY", "thisisaverystrongsecretkeythatilike_touse")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
 
@@ -170,16 +170,22 @@ async def chat_endpoint(req: ChatRequest, db: Session = Depends(get_db), current
     # ... inside chat_endpoint ...
     
     # 1. Fetch User and Permissions if logged in
-    system_prompt = "You are a helpful assistant for the Bus Ticketing System. You MUST use the provided tool definitions for any actions. Do NOT use <function> XML tags; the system expects standard tool_calls."
+    system_prompt = (
+        "You are a helpful assistant for the Bus Ticketing System. "
+        "IMPORTANT: You MUST use the native tool calling capability for actions. "
+        "Do NOT write JSON or text like 'tool_call' in your response content to simulate a tool call. "
+        "If you need to use a tool, generate a proper tool call object. "
+        "Always format your text responses in Markdown (tables, bold, lists) for better readability."
+    )
     tools = []
     tool_executor = None
     user_permissions = set()
     if current_user and current_user.get("user_id"):
-        from app.common.models import CompanyUser
         user_db = db.query(CompanyUser).filter(CompanyUser.id == current_user["user_id"]).first()
         if user_db:
-             # Add company_id to context if not present
+             # FORCE overwrite company_id from authenticated DB record to ensure security
              req.context["company_id"] = user_db.company_id
+             print(f"DEBUG: Enforcing Company ID from DB: {user_db.company_id}")
              
              # Flatten permissions
              for role in user_db.roles:
@@ -205,28 +211,10 @@ async def chat_endpoint(req: ChatRequest, db: Session = Depends(get_db), current
     elif req.role == "company_admin":
         system_prompt += f" You help company staff manage their fleet. Company ID: {req.context.get('company_id')}."
         
-        # Filter Tools based on Permissions
-        allowed_tools = []
-        required_perms = {
-            "list_my_buses": "view_bus",
-            "create_bus_plan": "create_bus"
-            # Add mappings for other tools
-        }
         
-        for tool in company_tools_definitions:
-            t_name = tool["function"]["name"]
-            # If specifically mapped, check permission. If not mapped, allow? Or deny?
-            # Safest: Deny unless mapped. Or 'chat_with_ai' creates base access.
-            # Let's say 'list_my_buses' needs 'view_bus'.
-            perm_needed = required_perms.get(t_name)
-            if not perm_needed:
-                 # If no specific perm required, maybe allow? 
-                 # Or assume it requires 'manage_ai_context'?
-                 allowed_tools.append(tool)
-            elif perm_needed in user_permissions:
-                 allowed_tools.append(tool)
-        
+        allowed_tools = company_tools_definitions
         tools = allowed_tools
+        system_prompt += f" You have access to the following tools: {[t['function']['name'] for t in tools]}."
         system_prompt += f" You have access to the following tools: {[t['function']['name'] for t in tools]}."
         
         tool_executor = lambda name, args: execute_company_tool(name, args, req.context)
@@ -258,7 +246,6 @@ async def chat_endpoint(req: ChatRequest, db: Session = Depends(get_db), current
             db.commit()
 
         if USE_GEMINI:
-            # --- GEMINI PATH ---
             model = genai.GenerativeModel(MODEL_NAME)
             
             gemini_tools = convert_tools_to_gemini(tools) if tools else None
@@ -330,6 +317,11 @@ async def chat_endpoint(req: ChatRequest, db: Session = Depends(get_db), current
                     # If this message was a massive tool output or error, skip it or truncate heavily
                     if len(content) > 200:
                          content = content[:200] + "... [truncated]"
+                    
+                    # Sanitize: Remove fake tool calls from history to prevent model confusion
+                    if content.strip().startswith("tool_call") or "tool_call create_bus" in content:
+                        continue 
+
                     messages.append({"role": role, "content": content})
 
             messages.append({"role": "user", "content": req.message})
@@ -339,12 +331,19 @@ async def chat_endpoint(req: ChatRequest, db: Session = Depends(get_db), current
             total_chars = sum(len(str(m.get('content', ''))) for m in messages)
             print(f"DEBUG: Total content chars: {total_chars}")
 
-            completion = client.chat.completions.create(
-                model=MODEL_NAME,
-                messages=messages,
-                tools=tools if tools else None,
-                tool_choice="auto" if tools else None
-            )
+            # Construct arguments dynamically to avoid sending 'tool_choice': None which Groq interprets as invalid
+            request_args = {
+                "model": MODEL_NAME,
+                "messages": messages
+            }
+            if tools:
+                request_args["tools"] = tools
+            else:
+                 request_args["tool_choice"] = "none"
+
+            print(f"DEBUG: Request Args: {json.dumps({k: v for k, v in request_args.items() if k != 'messages'}, default=str)}")
+            
+            completion = client.chat.completions.create(**request_args)
             
             msg = completion.choices[0].message
             

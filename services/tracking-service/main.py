@@ -1,5 +1,6 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 import json
 import redis.asyncio as redis
 import os
@@ -64,7 +65,35 @@ async def update_location(bus_id: str, location: dict):
     # 2. Broadcast to subscribers
     await manager.broadcast(bus_id, location)
     
+    
     return {"status": "updated"}
+
+class BatchRequest(BaseModel):
+    bus_ids: list[str]
+
+@app.post("/api/v1/tracking/batch")
+async def get_batch_locations(req: BatchRequest):
+    """
+    Get last known locations for a list of bus IDs.
+    Returns: {bus_id: location_data_dict}
+    """
+    pipe = redis_client.pipeline()
+    for bid in req.bus_ids:
+        pipe.get(f"bus_location:{bid}")
+    
+    results = await pipe.execute()
+    
+    response = {}
+    for i, bid in enumerate(req.bus_ids):
+        if results[i]:
+            try:
+                response[bid] = json.loads(results[i])
+            except:
+                response[bid] = None
+        else:
+            response[bid] = None
+            
+    return response
 
 # WebSocket endpoint for Consumers (Customers/Dashboards)
 @app.websocket("/ws/tracking/{bus_id}")

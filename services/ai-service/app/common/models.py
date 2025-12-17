@@ -1,9 +1,339 @@
-from sqlalchemy import Column, String, Text, DateTime, Integer
+from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, Table, Float, Enum, Boolean, Text
+from sqlalchemy.orm import relationship
 from sqlalchemy.orm import declarative_base
-from datetime import datetime, timezone
-import uuid
-
 Base = declarative_base()
+import uuid
+from datetime import datetime, timezone
+import enum
+from datetime import timedelta
+
+
+
+# roles <-> permissions (many-to-many)
+role_permissions = Table(
+    "role_permissions",
+    Base.metadata,
+    Column("role_id", String, ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True),
+    Column("permission_id", String, ForeignKey("permissions.id", ondelete="CASCADE"), primary_key=True),
+)
+
+# company_users <-> roles (many-to-many)
+company_user_roles = Table(
+    "company_user_roles",
+    Base.metadata,
+    Column("company_user_id", String, ForeignKey("company_users.id", ondelete="CASCADE"), primary_key=True),
+    Column("role_id", String, ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True),
+)
+
+# company_users <-> extra permissions (many-to-many, per‑user grants)
+company_user_extra_permissions = Table(
+    "company_user_extra_permissions",
+    Base.metadata,
+    Column("company_user_id", String, ForeignKey("company_users.id"), primary_key=True),
+    Column("permission_id", String, ForeignKey("permissions.id"), primary_key=True),
+)
+
+# company_users <-> revoked permissions (many-to-many, per‑user explicit denies)
+company_user_revoked_permissions = Table(
+    "company_user_revoked_permissions",     
+    Base.metadata,
+    Column("company_user_id", String, ForeignKey("company_users.id"), primary_key=True),
+    Column("permission_id", String, ForeignKey("permissions.id"), primary_key=True),
+)
+
+# buses <-> routes (many-to-many)
+bus_routes = Table(
+    "bus_routes",
+    Base.metadata,
+    Column("bus_id", String, ForeignKey("buses.id"), primary_key=True),
+    Column("route_id", String, ForeignKey("routes.id"), primary_key=True)
+)
+
+# buses <-> schedules (many-to-many)
+bus_schedules = Table(
+    "bus_schedules",
+    Base.metadata,
+    Column("bus_id", String, ForeignKey("buses.id"), primary_key=True),
+    Column("schedule_id", String, ForeignKey("schedules.id"), primary_key=True)
+)
+
+
+class User(Base):
+    """
+    Regular users who book tickets via the website.
+    These users are NOT tied to any company.
+    """
+    __tablename__ = "users"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    full_name = Column(String, nullable=False)
+    email = Column(String, unique=True, nullable=True)
+    phone_number = Column(String, nullable=True)
+    password_hash = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+
+    # Regular users don't have company_id - they're customers
+    tickets = relationship("Ticket", back_populates="user")
+    payments = relationship("Payment", back_populates="user")
+
+
+class CompanyUser(Base):
+    """
+    Company staff who manage the company via .NET software.
+    These users are tied to a company and have roles/permissions.
+    """
+    __tablename__ = "company_users"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    full_name = Column(String, nullable=False)
+    # Real/personal email for the user (used for OTP delivery, notifications, etc.)
+    email = Column(String, unique=True, nullable=True)
+    # Company-issued login identifier/email – used when logging in as a company user
+    login_email = Column(String, unique=True, nullable=True)
+    phone_number = Column(String, nullable=True)
+    password_hash = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+
+    company_id = Column(String, ForeignKey("companies.id"), nullable=False)
+    company = relationship("Company", back_populates="company_users")
+
+    roles = relationship("Role", secondary=company_user_roles, back_populates="company_users")
+    # Per-user permission overrides
+    extra_permissions = relationship(
+        "Permission",
+        secondary=company_user_extra_permissions,
+        back_populates="company_users_with_extra_permissions",
+    )
+    revoked_permissions = relationship(
+        "Permission",
+        secondary=company_user_revoked_permissions,
+        back_populates="company_users_with_revoked_permissions",
+    )
+
+
+class Role(Base):
+    __tablename__ = "roles"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    # Name of the role (e.g. "company_admin", "ticket_agent")
+    # Note: uniqueness is now logical (per company), not enforced globally at DB level.
+    name = Column(String, nullable=False)
+    # If null, the role is global (e.g. "super_admin"); otherwise it belongs to a company.
+    company_id = Column(String, ForeignKey("companies.id"), nullable=True)
+
+    company_users = relationship("CompanyUser", secondary=company_user_roles, back_populates="roles")
+    permissions = relationship("Permission", secondary=role_permissions, back_populates="roles")
+    company = relationship("Company", back_populates="roles")
+
+
+class Permission(Base):
+    __tablename__ = "permissions"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    # Permission name - unique per company (or global if company_id is None)
+    name = Column(String, nullable=False)
+    # If null, the permission is global (e.g. system-level); otherwise it belongs to a company.
+    company_id = Column(String, ForeignKey("companies.id"), nullable=True)
+
+    roles = relationship("Role", secondary=role_permissions, back_populates="permissions")
+    # Backrefs for per-company-user overrides
+    company_users_with_extra_permissions = relationship(
+        "CompanyUser",
+        secondary=company_user_extra_permissions,
+        back_populates="extra_permissions",
+    )
+    company_users_with_revoked_permissions = relationship(
+        "CompanyUser",
+        secondary=company_user_revoked_permissions,
+        back_populates="revoked_permissions",
+    )
+    company = relationship("Company", back_populates="permissions")
+
+
+class PaymentStatus(str, enum.Enum):
+    pending = "pending"
+    success = "success"
+    failed = "failed"
+
+
+class LoginOTP(Base):
+    """
+    Stores one-time passwords for company user login via company-issued login_email.
+    OTP is sent to the company user's real email and must be verified before issuing JWT.
+    """
+    __tablename__ = "login_otps"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    company_user_id = Column(String, ForeignKey("company_users.id"), nullable=False)
+    code = Column(String, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    consumed = Column(Boolean, default=False)
+
+    company_user = relationship("CompanyUser")
+
+class Payment(Base):
+    __tablename__ = "payments"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    ticket_id = Column(String, ForeignKey("tickets.id"), nullable=False)
+    user_id = Column(String, ForeignKey("users.id"), nullable=True)
+    phone_number = Column(String(20), nullable=True)
+    amount = Column(Float, nullable=False)
+    provider = Column(String(50), nullable=False)
+    status = Column(Enum(PaymentStatus), default=PaymentStatus.pending)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+
+    ticket = relationship("Ticket", back_populates="payments")
+    user = relationship("User", back_populates="payments")
+
+# Comapny model
+class Company(Base):
+    __tablename__ = "companies"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    name = Column(String, unique=True, nullable=False)
+    email = Column(String, unique=True, nullable=True)
+    phone_number = Column(String, nullable=True)
+    # is_verfied = Column(Boolean, default=False)
+    address = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+
+
+    company_users = relationship("CompanyUser", back_populates="company")
+    buses = relationship("Bus", back_populates="company")
+    routes = relationship("Route", back_populates="company")
+    route_segments = relationship("RouteSegment", back_populates="company")
+    stations = relationship("BusStation", back_populates="company")
+    schedules = relationship("Schedule", back_populates="company")
+    tickets = relationship("Ticket", back_populates="company")
+    # Company-scoped roles (e.g. cashier, inspector, etc.)
+    roles = relationship("Role", back_populates="company")
+    # Company-scoped permissions
+    permissions = relationship("Permission", back_populates="company")
+    drivers = relationship("Driver", back_populates="company")
+
+
+# Bus model
+class Bus(Base):
+    __tablename__ = "buses"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    plate_number = Column(String, unique=True, nullable=False)
+    capacity = Column(Integer, nullable=False)
+    available_seats = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+    company_id = Column(String, ForeignKey("companies.id"))
+
+    company = relationship("Company", back_populates="buses")
+    schedules = relationship("Schedule", back_populates="bus")
+    tickets = relationship("Ticket", back_populates="bus")
+    routes = relationship("Route", secondary=bus_routes, back_populates="buses")
+    drivers = relationship("Driver", back_populates="bus")
+
+# Bus station model
+class BusStation(Base):
+    __tablename__ = "bus_stations"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    name = Column(String, nullable=False)
+    location = Column(String, nullable=True)
+    company_id = Column(String, ForeignKey("companies.id"))
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+
+    
+
+    company = relationship("Company", back_populates="stations")
+    route_segments_from = relationship("RouteSegment", back_populates="start_station", foreign_keys="RouteSegment.start_station_id")
+    route_segments_to = relationship("RouteSegment", back_populates="end_station", foreign_keys="RouteSegment.end_station_id")
+
+
+class Route(Base):
+    __tablename__ = "routes"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    # name = Column(String, nullable=False)
+    origin_id = Column(String, ForeignKey("bus_stations.id"))
+    destination_id = Column(String, ForeignKey("bus_stations.id"))
+    price = Column(Float, nullable=False)  # overall route price
+    company_id = Column(String, ForeignKey("companies.id"))
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+
+    company = relationship("Company", back_populates="routes")
+    segments = relationship("RouteSegment", back_populates="route")
+    buses = relationship("Bus", secondary=bus_routes, back_populates="routes")
+    tickets = relationship("Ticket", back_populates='route')
+
+
+class RouteSegment(Base):
+    __tablename__ = "route_segments"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    route_id = Column(String, ForeignKey("routes.id"), nullable=False)
+    start_station_id = Column(String, ForeignKey("bus_stations.id"), nullable=False)
+    end_station_id = Column(String, ForeignKey("bus_stations.id"), nullable=False)
+    price = Column(Float, nullable=False)
+    stop_order = Column(Integer, nullable=False)
+    company_id = Column(String, ForeignKey("companies.id"))
+
+    route = relationship("Route", back_populates="segments")
+    start_station = relationship("BusStation", back_populates="route_segments_from", foreign_keys=[start_station_id])
+    end_station = relationship("BusStation", back_populates="route_segments_to", foreign_keys=[end_station_id])
+    schedules = relationship("Schedule", back_populates="route_segment")
+    company = relationship("Company", back_populates="route_segments")
+
+
+class Schedule(Base):
+    __tablename__ = "schedules"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    bus_id = Column(String, ForeignKey("buses.id"))
+    route_segment_id = Column(String, ForeignKey("route_segments.id"))
+    departure_time = Column(DateTime, nullable=False)
+    arrival_time = Column(DateTime, nullable=True)
+    company_id = Column(String, ForeignKey("companies.id"))
+
+    bus = relationship("Bus", back_populates="schedules")
+    route_segment = relationship("RouteSegment", back_populates="schedules")
+    company = relationship("Company", back_populates="schedules")
+    tickets = relationship("Ticket", back_populates="schedule")
+    buses = relationship("Bus", secondary=bus_schedules, back_populates="schedules")
+
+
+class Ticket(Base):
+    __tablename__ = "tickets"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"))
+    bus_id = Column(String, ForeignKey("buses.id"))
+    schedule_id = Column(String, ForeignKey("schedules.id"))
+    company_id = Column(String, ForeignKey("companies.id"))
+    route_id = Column(String, ForeignKey("routes.id"))
+    qr_code = Column(String, nullable=False)
+    status = Column(String, default="booked")
+    mode = Column(String, default="active")
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+
+    user = relationship("User", back_populates="tickets")
+    bus = relationship("Bus", back_populates="tickets")
+    schedule = relationship("Schedule", back_populates="tickets")
+    company = relationship("Company", back_populates="tickets")
+    payments = relationship("Payment", back_populates="ticket")
+    route = relationship("Route", back_populates='tickets')
+
+
+
+class Driver(Base):
+    __tablename__ = "drivers"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    full_name = Column(String, nullable=False)
+    email = Column(String, unique=True, nullable=False)
+    phone_number = Column(String, nullable=True)
+    password_hash = Column(String, nullable=False)
+    license_number = Column(String, nullable=True)
+    
+    company_id = Column(String, ForeignKey("companies.id"))
+    bus_id = Column(String, ForeignKey("buses.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
+
+    company = relationship("Company", back_populates="drivers")
+    bus = relationship("Bus", back_populates="drivers")
+
+
+# class CompanyRole(Base):
+#     __tablename__ = "company_roles"
+#     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+#     name = Column(String, unique=True, nullable=False)
+#     company_id = Column(String, ForeignKey("companies.id"))
+
+#     company = relationship("Company", back_populates="roles")
+#     users = relationship("User", secondary=user_roles, back_populates="company_roles")
 
 class ChatHistory(Base):
     __tablename__ = "chat_history"

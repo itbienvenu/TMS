@@ -22,7 +22,7 @@ const Login = () => {
         setLoading(true);
 
         try {
-            const res = await api.post('/login', {
+            const res = await api.post('/auth/login', {
                 email: email,
                 password_hash: password,
                 user_type: 'user'
@@ -37,7 +37,7 @@ const Login = () => {
             }
 
             // Fetch user details immediately to populate store
-            const userRes = await api.get('/me');
+            const userRes = await api.get('/auth/me');
             const user = userRes.data;
 
             login(access_token, user);

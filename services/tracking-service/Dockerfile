@@ -5,6 +5,6 @@ WORKDIR /app
 COPY services/tracking-service/requirements.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY services/tracking-service .
 
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8009", "--reload"]
