@@ -99,6 +99,15 @@
                              </StackPanel>
                         </Button>
                         
+                        <Button Classes="Ghost" Command="{Binding NavigateToTrackingCommand}" 
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="12,10"
+                                CornerRadius="8">
+                             <StackPanel Orientation="Horizontal" Spacing="12">
+                                 <TextBlock Text="🗺️"/>
+                                 <TextBlock Text="Live Tracking" FontWeight="Medium"/>
+                             </StackPanel>
+                        </Button>
+
                         <Button Classes="Ghost" Command="{Binding NavigateToChatCommand}" 
                                 HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="12,10"
                                 CornerRadius="8">

@@ -41,6 +41,10 @@ public partial class ChatViewModel : ViewModelBase
         var token = TokenStorage.AccessToken;
         _userService = new UserService(token);
         _httpClient = new HttpClient(); 
+        if (!string.IsNullOrEmpty(token))
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        } 
         
         // Generate or retrieve session ID
         if (string.IsNullOrEmpty(_sessionId))
@@ -129,5 +133,12 @@ public partial class ChatViewModel : ViewModelBase
         {
             IsLoading = false;
         }
+    }
+    [RelayCommand]
+    private void ClearSession()
+    {
+        Messages.Clear();
+        _sessionId = Guid.NewGuid().ToString();
+        Messages.Add(new ChatMessage { Role = "assistant", Content = "Chat history cleared. Starting a new session." });
     }
 }

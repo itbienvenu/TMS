@@ -1,8 +1,8 @@
 ﻿using System;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using CompanyDashboard.ViewModels;
 using CompanyDashboard.Services;
+using CompanyDashboard.ViewModels;
 
 namespace CompanyDashboard.ViewModels;
 
@@ -21,6 +21,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public SchedulesViewModel SchedulesViewModel { get; }
     public TicketsViewModel TicketsViewModel { get; }
     public ChatViewModel ChatViewModel { get; }
+    public TrackingViewModel TrackingViewModel { get; }
 
     public MainWindowViewModel()
     {
@@ -31,6 +32,7 @@ public partial class MainWindowViewModel : ViewModelBase
         SchedulesViewModel = new SchedulesViewModel();
         TicketsViewModel = new TicketsViewModel();
         ChatViewModel = new ChatViewModel();
+        TrackingViewModel = new TrackingViewModel();
 
         CurrentViewModel = DashboardViewModel;
     }
@@ -89,6 +91,13 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         CurrentViewModel = ChatViewModel;
         CurrentPageTitle = "AI Assistant";
+    }
+
+    [RelayCommand]
+    private void NavigateToTracking()
+    {
+        CurrentViewModel = TrackingViewModel;
+        CurrentPageTitle = "Live Tracking";
     }
 
     [RelayCommand]

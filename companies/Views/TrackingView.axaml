@@ -1,0 +1,46 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:CompanyDashboard.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="CompanyDashboard.Views.TrackingView"
+             x:DataType="vm:TrackingViewModel">
+
+  <Design.DataContext>
+    <vm:TrackingViewModel />
+  </Design.DataContext>
+
+  <UserControl.Styles>
+     <Style Selector="DataGridColumnHeader">
+        <Setter Property="Background" Value="#F8F9FA"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Padding" Value="10"/>
+     </Style>
+  </UserControl.Styles>
+
+  <Grid RowDefinitions="Auto,*">
+    
+    <!-- Top Bar -->
+    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="20" Spacing="20">
+        <TextBlock Text="Fleet Tracking" FontSize="24" FontWeight="Bold" VerticalAlignment="Center"/>
+        <Button Content="Start Tracking" Command="{Binding StartTrackingCommand}" />
+        <Button Content="Stop" Command="{Binding StopTrackingCommand}" />
+        <ProgressBar IsIndeterminate="True" IsVisible="{Binding IsLoading}" Width="100"/>
+    </StackPanel>
+
+    <!-- Main Content -->
+    <DataGrid Grid.Row="1" ItemsSource="{Binding TrackedBuses}"
+              AutoGenerateColumns="False" IsReadOnly="True"
+              GridLinesVisibility="All"
+              BorderThickness="1" BorderBrush="#E0E0E0"
+              Margin="20,0,20,20">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="Bus Plate" Binding="{Binding PlateNumber}" Width="*" />
+        <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="100" />
+        <DataGridTextColumn Header="Location" Binding="{Binding LocationString}" Width="200" />
+        <DataGridTextColumn Header="Last Update" Binding="{Binding LastUpdate}" Width="200" />
+      </DataGrid.Columns>
+    </DataGrid>
+  </Grid>
+</UserControl>

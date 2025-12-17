@@ -51,3 +51,6 @@ build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
 [/home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/companies/Views/TicketsView.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[/home/itbienvenu/Documents/mwimule/PROGRAMMING/PYTHON/ticketing-system/companies/Views/TrackingView.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
