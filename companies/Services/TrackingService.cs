@@ -10,7 +10,7 @@ namespace CompanyDashboard.Services;
 public class TrackingService
 {
     private readonly HttpClient _httpClient;
-    private const string BaseUrl = "http://localhost:8000/api/v1/tracking";
+    private const string BaseUrl = "http://3.12.248.83:8000/api/v1/tracking";
 
     public TrackingService()
     {

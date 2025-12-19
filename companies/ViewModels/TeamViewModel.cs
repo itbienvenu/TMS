@@ -1,8 +1,8 @@
 using System;
-using System.Diagnostics;
-using System.Runtime.InteropServices;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -68,7 +68,7 @@ public partial class TeamViewModel : ViewModelBase
     // --- Drivers Collection ---
     [ObservableProperty]
     private ObservableCollection<Driver> _drivers = new();
-    
+
     // --- Driver Creation Form ---
     [ObservableProperty]
     private string _newDriverName = string.Empty;
@@ -80,7 +80,7 @@ public partial class TeamViewModel : ViewModelBase
     private string _newDriverLicense = string.Empty;
     [ObservableProperty]
     private string _newDriverPassword = string.Empty;
-    
+
     [ObservableProperty]
     private string _driverErrorMessage = string.Empty;
 
@@ -97,7 +97,7 @@ public partial class TeamViewModel : ViewModelBase
         IsLoading = true;
         LoadDataAsync().ConfigureAwait(false);
     }
-    
+
     // Update LoadDataAsync to include drivers
     private async Task LoadDataAsync()
     {
@@ -130,15 +130,15 @@ public partial class TeamViewModel : ViewModelBase
     private async Task LoadDriversAsync()
     {
         IsLoading = true;
-        try 
+        try
         {
             Drivers = new ObservableCollection<Driver>(await _driverService.GetAllDriversAsync());
         }
         catch (Exception ex)
         {
-             DriverErrorMessage = $"Error loading drivers: {ex.Message}";
+            DriverErrorMessage = $"Error loading drivers: {ex.Message}";
         }
-        finally 
+        finally
         {
             IsLoading = false;
         }
@@ -147,7 +147,7 @@ public partial class TeamViewModel : ViewModelBase
     [RelayCommand]
     private async Task CreateDriverAsync()
     {
-        if (string.IsNullOrWhiteSpace(NewDriverName) || string.IsNullOrWhiteSpace(NewDriverEmail) || 
+        if (string.IsNullOrWhiteSpace(NewDriverName) || string.IsNullOrWhiteSpace(NewDriverEmail) ||
             string.IsNullOrWhiteSpace(NewDriverPassword) || string.IsNullOrWhiteSpace(NewDriverLicense))
         {
             DriverErrorMessage = "Please fill in all required fields (Name, Email, Password, License).";
@@ -167,7 +167,7 @@ public partial class TeamViewModel : ViewModelBase
             };
 
             await _driverService.CreateDriverAsync(newDriver);
-            
+
             // Reset form
             NewDriverName = "";
             NewDriverEmail = "";
@@ -219,8 +219,8 @@ public partial class TeamViewModel : ViewModelBase
             // Let's assume the frontend route /track/{param} accepts a vehicle/ticket ID.
             // We'll direct them to a generic tracking dashboard or pass driver ID if supported.
             // Using a placeholder bus ID for demo:
-            var url = $"http://localhost:5173/track/bus_{driver.Id}"; 
-            
+            var url = $"http://3.12.248.83:5173/track/bus_{driver.Id}";
+
             // Cross-platform open url
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
@@ -260,7 +260,7 @@ public partial class TeamViewModel : ViewModelBase
     [RelayCommand]
     private async Task CreateUserAsync()
     {
-        if (string.IsNullOrWhiteSpace(NewUserFullName) || string.IsNullOrWhiteSpace(NewUserEmail) || 
+        if (string.IsNullOrWhiteSpace(NewUserFullName) || string.IsNullOrWhiteSpace(NewUserEmail) ||
             string.IsNullOrWhiteSpace(NewUserPassword) || SelectedRoleForNewUser == null)
         {
             ErrorMessage = "Please fill in all required fields (Name, Email, Password, Role).";
@@ -281,7 +281,7 @@ public partial class TeamViewModel : ViewModelBase
             };
 
             await _companyService.CreateCompanyUserAsync(newUser);
-            
+
             // Reset form
             NewUserFullName = "";
             NewUserEmail = "";
@@ -326,13 +326,13 @@ public partial class TeamViewModel : ViewModelBase
         {
             var newRole = new RoleCreate { Name = NewRoleName };
             await _roleService.CreateRoleAsync(newRole);
-            
+
             NewRoleName = "";
             ShowRoleForm = false; // Legacy flag, harmless
 
             // Refresh roles
             Roles = new ObservableCollection<Role>(await _roleService.GetAllRolesAsync());
-            
+
             // Should we select the new role? Maybe not, keep them in create mode or let them select it.
             // Let's keep them in create mode so they can create another one, or they can click the new role to edit.
             ErrorMessage = "Role created successfully.";
@@ -354,7 +354,7 @@ public partial class TeamViewModel : ViewModelBase
         try
         {
             await _roleService.DeleteRoleAsync(role.Id);
-             Roles.Remove(role);
+            Roles.Remove(role);
         }
         catch (Exception ex)
         {
@@ -386,7 +386,7 @@ public partial class TeamViewModel : ViewModelBase
             // Ideally we just add to the local list, but a refresh ensures consistency
             var updatedRoles = await _roleService.GetAllRolesAsync();
             Roles = new ObservableCollection<Role>(updatedRoles);
-            
+
             // Reselect the role
             SelectedRole = Roles.FirstOrDefault(r => r.Id == assign.RoleId);
         }
@@ -399,9 +399,10 @@ public partial class TeamViewModel : ViewModelBase
             IsLoading = false;
         }
     }
-    
+
     [RelayCommand]
-    private async Task RefreshAsync() {
+    private async Task RefreshAsync()
+    {
         await LoadDataAsync();
     }
 }

@@ -1,13 +1,16 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Platform, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
 import { useRouter } from 'expo-router';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
-import { ENDPOINTS } from '../../constants/Config';
+import { ENDPOINTS, API_BASE_URL } from '../../constants/Config';
+import * as Location from 'expo-location';
 
-const COMPANY_URL = ENDPOINTS.COMPANY;
+const COMPANY_URL = ENDPOINTS.COMPANY; // .../api/v1
+// We need to target the tracking service. If via gateway:
+const TRACKING_URL = `${API_BASE_URL}/tracking`;
 
 export default function HomeScreen() {
   const { driverInfo, token, logout } = useAuth();
@@ -15,9 +18,14 @@ export default function HomeScreen() {
   const [busData, setBusData] = useState<any>(null);
   const router = useRouter();
 
+  // Tracking State
+  const [isTracking, setIsTracking] = useState(false);
+  const [locationSubscription, setLocationSubscription] = useState<Location.LocationSubscription | null>(null);
+  const [lastLocation, setLastLocation] = useState<Location.LocationObject | null>(null);
+
   const fetchDriverData = async () => {
     try {
-      const response = await axios.get(`${COMPANY_URL}/api/v1/driver-api/me`, {
+      const response = await axios.get(`${COMPANY_URL}/driver-api/me`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setBusData(response.data);
@@ -29,6 +37,90 @@ export default function HomeScreen() {
   useEffect(() => {
     fetchDriverData();
   }, []);
+
+  // Tracking Logic
+  const startTracking = async () => {
+    if (!busData?.bus?.plate_number) {
+      Alert.alert("Error", "No bus assigned to you.");
+      return;
+    }
+
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert("Permission Denied", "Allow location access to start trip.");
+      return;
+    }
+
+    setIsTracking(true);
+
+    // Use plate number or ID as bus_id
+    // Ideally use busData.bus.id
+    const busId = busData.bus.id || busData.bus.plate_number;
+
+    try {
+      // Create subscription
+      const sub = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.High,
+          timeInterval: 5000, // Every 5 seconds
+          distanceInterval: 10, // Or every 10 meters
+        },
+        async (loc) => {
+          setLastLocation(loc);
+
+          // Send to Backend
+          const payload = {
+            latitude: loc.coords.latitude,
+            longitude: loc.coords.longitude,
+            speed: loc.coords.speed || 0,
+            heading: loc.coords.heading || 0,
+            timestamp: loc.timestamp
+          };
+
+          try {
+            // Direct call to tracking service (assuming gateway forwards /tracking to tracking-service)
+            // If Gateway is on 8000 and Tracking on 8009, we might need a direct port if Gateway isn't configured.
+            // For now, let's try the Gateway URL first.
+            await axios.post(`${TRACKING_URL}/${busId}`, payload, {
+              headers: {
+                'Content-Type': 'application/json',
+                // 'x-driver-token': token // Optional auth
+              }
+            });
+            console.log("Loc sent:", payload);
+          } catch (err) {
+            console.log("Failed to send location", err);
+          }
+        }
+      );
+      setLocationSubscription(sub);
+      Alert.alert("Trip Started", "You are now live.");
+    } catch (e) {
+      console.log(e);
+      setIsTracking(false);
+      Alert.alert("Error", "Could not start tracking.");
+    }
+  };
+
+  const stopTracking = () => {
+    if (locationSubscription) {
+      locationSubscription.remove();
+      setLocationSubscription(null);
+    }
+    setIsTracking(false);
+    Alert.alert("Trip Ended", "Tracking stopped.");
+  };
+
+  const toggleTrip = () => {
+    if (isTracking) {
+      Alert.alert("End Trip", "Are you sure?", [
+        { text: "Cancel", style: "cancel" },
+        { text: "End Trip", onPress: stopTracking, style: 'destructive' }
+      ]);
+    } else {
+      startTracking();
+    }
+  };
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -51,6 +143,26 @@ export default function HomeScreen() {
             <Ionicons name="log-out-outline" size={24} color="#FF3B30" />
           </TouchableOpacity>
         </View>
+
+        {/* Start Trip Card */}
+        <TouchableOpacity
+          style={[styles.tripCard, isTracking ? styles.activeTrip : styles.inactiveTrip]}
+          onPress={toggleTrip}
+          activeOpacity={0.8}
+        >
+          <View style={styles.tripIcon}>
+            <Ionicons name={isTracking ? "stop-circle" : "play-circle"} size={64} color="white" />
+          </View>
+          <Text style={styles.tripText}>
+            {isTracking ? "END TRIP" : "START TRIP"}
+          </Text>
+          {isTracking && (
+            <View style={styles.liveIndicator}>
+              <ActivityIndicator color="white" size="small" />
+              <Text style={{ color: 'white', marginLeft: 8 }}>LIVE TRACKING</Text>
+            </View>
+          )}
+        </TouchableOpacity>
 
         {busData?.bus ? (
           <View style={styles.card}>
@@ -98,6 +210,24 @@ const styles = StyleSheet.create({
   greeting: { fontSize: 16, color: '#666' },
   driverName: { fontSize: 24, fontWeight: 'bold', color: '#333' },
   logoutBtn: { padding: 10, borderRadius: 10, backgroundColor: '#fcebe9' },
+
+  tripCard: {
+    borderRadius: 20,
+    padding: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6
+  },
+  inactiveTrip: { backgroundColor: '#2196F3' },
+  activeTrip: { backgroundColor: '#FF3B30' },
+  tripIcon: { marginBottom: 10 },
+  tripText: { color: 'white', fontSize: 24, fontWeight: '900', letterSpacing: 1 },
+  liveIndicator: { flexDirection: 'row', marginTop: 10, alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 },
 
   card: { backgroundColor: '#fff', borderRadius: 16, padding: 20, marginBottom: 20, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 },
   cardTitle: { fontSize: 16, fontWeight: '600', color: '#888', marginBottom: 15, textTransform: 'uppercase' },
