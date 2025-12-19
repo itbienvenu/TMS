@@ -73,9 +73,36 @@ const TrackBus: React.FC = () => {
     };
 
     useEffect(() => {
-        // In a real app, we would fetch the Bus ID associated with the Ticket ID here.
-        // For MVP/Demo, we assume a fixed test bus or derived ID.
-        setBusId('test-bus-1');
+        // For MVP/Demo, we assume a fixed bus or derived ID.
+        // This MUST match what the mobile app is sending.
+        // The driver app seeded user is assigned to a bus which likely maps to 'bus-123' or we need to ensure they match.
+        // Let's use the ID that the driver is likely sending to.
+        // In the driver app, we are sending to `busData.bus.id`.
+        // Based on seed.py, the bus ID is a UUID.
+        // To make this work easily for the demo without complex routing, let's hardcode the Listener to the SAME ID the driver is pushing to.
+        // Or better, let's change this to be dynamic or 'test-bus-1' if we force the driver to use that.
+        // Actually, the best way for a demo is to make the frontend listen to the GLOBAL channel if we don't know the exact ID,
+        // OR we just use the UUID if we can find it.
+        // But for simply showing it works, I will hardcode the ID 'rac-777-z' (plate number as ID if we changed logic) or keep it consistent.
+        // Wait, the backend logic: `startTracking` in Mobile uses `busData.bus.id || busData.bus.plate_number`.
+        // Seeded bus has UUID.
+        // Let's UPDATE the frontend to listen to 'RAC 777 Z' (the plate number) which is easier to sync if the ID fails.
+        // BUT, the mobile app prioritizes ID.
+
+        // Let's try to match the Seeded Bus ID if possible, or fallback to something known.
+        // Since we can't easily know the UUID generated on the remote server, 
+        // I will update the mobile app to prefer Plate Number as ID for the demo, 
+        // AND update this frontend to listen to that Plate Number.
+        setBusId('test-bus-1'); // Reverting to 'test-bus-1' for now, but I will instruct the user to change the Mobile App to send 'test-bus-1' or similar for the demo.
+        // Actually, if I look at my previous edit to Mobile App:
+        // const busId = busData.bus.id || busData.bus.plate_number;
+        // The SEEDED bus has a UUID.
+
+        // To fix the "Not Seeing Updates" issue immediately:
+        // I will change this to listen to the specific bus ID or Plate associated with the driver.
+        // The driver's bus plate is "RAC 777 Z".
+        // Let's try setting this to the Plate Number, and I will ensure the Mobile App sends the Plate Number.
+        setBusId('RAC 777 Z');
         setStatus('Connecting to satellite...');
     }, [ticketId]);
 

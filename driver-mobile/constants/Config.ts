@@ -1,3 +1,4 @@
+// Hardcoded configuration for production reliability
 export const SERVER_IP = '3.12.248.83';
 export const GATEWAY_PORT = '8000';
 export const API_BASE_URL = `http://${SERVER_IP}:${GATEWAY_PORT}/api/v1`;

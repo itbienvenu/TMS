@@ -53,9 +53,8 @@ export default function HomeScreen() {
 
     setIsTracking(true);
 
-    // Use plate number or ID as bus_id
-    // Ideally use busData.bus.id
-    const busId = busData.bus.id || busData.bus.plate_number;
+    // Use plate number as bus_id for MVP demo consistency
+    const busId = busData.bus.plate_number;
 
     try {
       // Create subscription

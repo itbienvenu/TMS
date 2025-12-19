@@ -19,8 +19,8 @@ export default function LoginScreen() {
         }
         setLoading(true);
         try {
-            console.log(`Attempting login to: ${AUTH_URL}/api/v1/auth/driver/login`);
-            const response = await axios.post(`${AUTH_URL}/api/v1/auth/driver/login`, {
+            console.log(`Attempting login to: ${AUTH_URL}/driver/login`);
+            const response = await axios.post(`${AUTH_URL}/driver/login`, {
                 email: email.trim(),
                 password
             });

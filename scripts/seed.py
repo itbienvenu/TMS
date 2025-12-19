@@ -202,11 +202,8 @@ def seed_data():
 
         # Assign to Super Admin
         if super_role:
-             # For super admin we might want global permissions (company_id=None) or specific to their company
-             # Let's assign them permissions scoped to the Admin Company
              ensure_company_permissions(admin_company.id, super_role)
 
-        # Assign to KBS Admin
         if kbs_admin_role:
              ensure_company_permissions(company.id, kbs_admin_role)
 

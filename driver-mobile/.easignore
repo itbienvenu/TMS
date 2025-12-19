@@ -1,0 +1,35 @@
+# Node modules are always uploaded via package.json, no need to include the folder
+node_modules/
+
+# Git files
+.git/
+.gitignore
+
+# Metro bundler cache and temporary files
+.expo/
+.expo-shared/
+.expo-packager-cache/
+.expo-cache/
+
+# Build outputs
+android/build/
+ios/build/
+dist/
+*.log
+*.tmp
+
+# Local environment files (you set these via EAS dashboard instead)
+.env
+.env.local
+.env.*.local
+
+# IDE/editor files
+.vscode/
+.idea/
+*.swp
+*.sublime-project
+*.sublime-workspace
+
+# Other OS-specific files
+.DS_Store
+Thumbs.db
