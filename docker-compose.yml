@@ -252,6 +252,32 @@ services:
     networks:
       - ticketing-net
     restart: always
+  
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "5173:5173"
+    networks:
+      - ticketing-net
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+
+  super-admin-dashboard:
+    build:
+      context: ./super-admin-dashboard
+    ports:
+      - "5174:5173"
+    networks:
+      - ticketing-net
+    volumes:
+      - ./super-admin-dashboard:/app
+      - /app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
 
 networks:
   ticketing-net:
