@@ -270,6 +270,46 @@ class RouteSegment(Base):
     company = relationship("Company", back_populates="route_segments")
 
 
+
+class TripStatus(str, enum.Enum):
+    Scheduled = "Scheduled"
+    Boarding = "Boarding"
+    In_Transit = "In_Transit"
+    Completed = "Completed"
+    Reconciled = "Reconciled"
+
+
+class CashSession(Base):
+    """
+    Tracks a cash collection session for a conductor/agent on a specific trip or shift.
+    """
+    __tablename__ = "cash_sessions"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    agent_id = Column(String, ForeignKey("company_users.id"), nullable=False)
+    # Optional: tie to a specific bus or schedule if needed, or just time-based
+    schedule_id = Column(String, ForeignKey("schedules.id"), nullable=True) 
+    
+    start_time = Column(DateTime, default=datetime.now(UTC))
+    end_time = Column(DateTime, nullable=True)
+    
+    expected_cash = Column(Float, default=0.0)
+    actual_cash = Column(Float, default=0.0)
+    status = Column(String, default="open") # open, closed, reconciled
+    
+    schedule = relationship("Schedule")
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    actor_id = Column(String, nullable=True) # User/Driver/System ID
+    role = Column(String, nullable=True) # driver, agent, system
+    action = Column(String, nullable=False) # START_TRIP, CLOSE_SESSION, etc.
+    target_id = Column(String, nullable=True) # ID of object being acted on
+    target_type = Column(String, nullable=True) # Schedule, CashSession, Ticket
+    details = Column(String, nullable=True) # JSON string or text desc
+    timestamp = Column(DateTime, default=datetime.now(UTC))
+
 class Schedule(Base):
     __tablename__ = "schedules"
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
@@ -278,6 +318,9 @@ class Schedule(Base):
     departure_time = Column(DateTime, nullable=False)
     arrival_time = Column(DateTime, nullable=True)
     company_id = Column(String, ForeignKey("companies.id"))
+    
+    # New state management
+    status = Column(Enum(TripStatus), default=TripStatus.Scheduled, nullable=False)
 
     bus = relationship("Bus", back_populates="schedules")
     route_segment = relationship("RouteSegment", back_populates="schedules")

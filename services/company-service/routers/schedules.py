@@ -213,6 +213,9 @@ def search_schedules(
             )
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+            
+    # Filter out past schedules
+    query = query.filter(Schedule.departure_time > datetime.now())
     
     schedules = query.all()
     
@@ -237,7 +240,8 @@ def search_schedules(
             "departure_time": schedule.departure_time.isoformat() if schedule.departure_time else None,
             "arrival_time": schedule.arrival_time.isoformat() if schedule.arrival_time else None,
             "company_id": schedule.company_id,
-            "company_name": db.query(Company).filter(Company.id == schedule.company_id).first().name if schedule.company_id else None
+            "company_name": db.query(Company).filter(Company.id == schedule.company_id).first().name if schedule.company_id else None,
+            "status": schedule.status.value if hasattr(schedule.status, "value") else schedule.status
         })
     
     return result

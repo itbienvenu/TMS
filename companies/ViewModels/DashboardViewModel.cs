@@ -11,11 +11,11 @@ namespace CompanyDashboard.ViewModels;
 
 public partial class DashboardViewModel : ViewModelBase
 {
-    private readonly BusService _busService;
-    private readonly RouteService _routeService;
-    private readonly TicketService _ticketService;
-    private readonly ScheduleService _scheduleService;
-    private readonly UserService _userService;
+    private BusService _busService;
+    private RouteService _routeService;
+    private TicketService _ticketService;
+    private ScheduleService _scheduleService;
+    private UserService _userService;
 
     [ObservableProperty]
     private bool _isLoading = true;
@@ -46,7 +46,7 @@ public partial class DashboardViewModel : ViewModelBase
         _ticketService = new TicketService(token);
         _scheduleService = new ScheduleService(token);
         _userService = new UserService(token);
-        
+
         LoadDataAsync().ConfigureAwait(false);
     }
 
@@ -55,6 +55,13 @@ public partial class DashboardViewModel : ViewModelBase
         IsLoading = true;
         try
         {
+            var token = TokenStorage.AccessToken;
+            _busService = new BusService(token);
+            _routeService = new RouteService(token);
+            _ticketService = new TicketService(token);
+            _scheduleService = new ScheduleService(token);
+            _userService = new UserService(token);
+
             // Load user info
             CurrentUser = await _userService.GetCurrentUserAsync();
 

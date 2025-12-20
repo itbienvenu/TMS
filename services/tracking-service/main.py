@@ -28,6 +28,7 @@ redis_client = redis.from_url(REDIS_URL, decode_responses=True)
 
 # --- Models ---
 class LocationUpdate(BaseModel):
+    trip_id: str = Field(..., description="Active Trip (Schedule) ID")
     latitude: float = Field(..., description="Current latitude")
     longitude: float = Field(..., description="Current longitude")
     speed: float = Field(0.0, description="Speed in m/s")
@@ -49,7 +50,7 @@ class BusStatus(LocationUpdate):
 class BatchRequest(BaseModel):
     bus_ids: List[str]
 
-# ... (Previous imports and setup remain) ...
+
 
 # --- Connection Manager ---
 class ConnectionManager:
@@ -111,7 +112,27 @@ async def update_location(
 ):
     """
     Endpoint for Driver App to push location.
+    Enforces Invariant 4: GPS updates must include trip_id and be accepted only when trip status is In_Transit.
+    Invariant 5: Verify Driver Identity
     """
+    # 0. Validate Driver Identity (Stub for Auth Service integration)
+    # Ideally: await auth_client.validate(x_driver_token)
+    if not x_driver_token:
+        # Log Security Alert
+        logger.warning(f"SECURITY ALERT: GPS Update for bus {bus_id} rejected. Missing Auth Token.")
+        raise HTTPException(status_code=401, detail="Missing Driver Token")
+    
+    # 1. Verify Active Trip
+    active_trip_id = await redis_client.get(f"bus_trip:{bus_id}")
+    
+    if not active_trip_id:
+        logger.warning(f"MONITORING: GPS Update rejected for {bus_id}. No active trip in Redis (Status not In_Transit).")
+        raise HTTPException(status_code=400, detail="No active trip found for this bus. Start trip first.")
+        
+    if active_trip_id != update.trip_id:
+        logger.warning(f"MONITORING: GPS Update Trip Mismatch. Bus: {bus_id}, Expected: {active_trip_id}, Got: {update.trip_id}")
+        raise HTTPException(status_code=403, detail="Trip ID mismatch. Monitoring Alert Triggered.")
+        
     enriched_data = update.dict()
     enriched_data["traffic_status"] = calculate_traffic_status(update.speed)
     

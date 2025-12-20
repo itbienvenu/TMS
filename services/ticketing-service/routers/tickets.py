@@ -93,11 +93,38 @@ async def create_ticket(ticket_req: TicketCreate, db: Session = Depends(get_db))
     if existing_ticket:
         raise HTTPException(status_code=400, detail="You have already booked a ticket for this route")
 
+    # ... existing code ...
+    
+    # Enforce Schedule (Trip) Validity
+    if not ticket_req.schedule_id:
+        raise HTTPException(status_code=400, detail="Schedule ID is required for revenue control")
+        
+    schedule = db.query(Schedule).filter(Schedule.id == str(ticket_req.schedule_id)).first()
+    if not schedule:
+        raise HTTPException(status_code=404, detail="Schedule (Trip) not found")
+        
+    # Invariant 2: Ticket Cut-Off
+    # A. Status Check
+    # We must treat schedule as truth. If missing status (legacy data), assume Scheduled? No, invariant says strict.
+    from database.models import TripStatus # Import here or top
+    
+    if schedule.status not in [TripStatus.Scheduled, TripStatus.Boarding]:
+         raise HTTPException(status_code=400, detail=f"Booking closed. Trip is {schedule.status}")
+         
+    # B. Time Check (Hard Cut-Off)
+    if schedule.departure_time < datetime.now():
+         raise HTTPException(status_code=400, detail="Booking closed. Bus has departed (Time cut-off)")
+
+    # Check Bus Capacity (Invariant 1: Unique, non-reusable ticket... tied to specific trip)
+    # Bus available seats logic is existing, but we should rely on Schedule's view of capacity if distinct?
+    # For now, Bus.available_seats is the shared resource.
+    
     if bus.available_seats <= 0:
         raise HTTPException(status_code=400, detail="Bus is fully booked")
 
     payload = {
         "ticket_id": str(uuid.uuid4()),
+        "trip_id": schedule.id, # bind to trip
         # ...
     }
     
@@ -179,8 +206,19 @@ async def create_ticket(ticket_req: TicketCreate, db: Session = Depends(get_db))
 # ... Other endpoints like verify-qr, my-tickets ...
 # For brevity in this turn, I will migrate the most critical ones: create, verify-qr, my-tickets
 
+from methods.permissions import get_current_company_user
+from database.models import CompanyUser
+
 @router.post("/verify-qr")
-async def verify_qr_code(qr_token: str = Body(..., embed=True), db: Session = Depends(get_db)):
+async def verify_qr_code(
+    qr_token: str = Body(..., embed=True), 
+    db: Session = Depends(get_db),
+    inspector: CompanyUser = Depends(get_current_company_user)
+):
+    """
+    Verifies a QR code. 
+    Enforces Invariant 5: Role-Based Enforcement (Inspector/Conductor/Driver only).
+    """
     try:
         decoded = base64.urlsafe_b64decode(qr_token.encode())
         parts = decoded.split(b".")
@@ -202,6 +240,10 @@ async def verify_qr_code(qr_token: str = Body(..., embed=True), db: Session = De
         
         if not ticket:
             raise HTTPException(status_code=404, detail="Ticket not found")
+            
+        # Cross-company security
+        if ticket.company_id != inspector.company_id:
+            raise HTTPException(status_code=403, detail="Access Denied: Ticket belongs to another company")
         
         if ticket.mode != "active":
             raise HTTPException(status_code=400, detail="Ticket is not active")

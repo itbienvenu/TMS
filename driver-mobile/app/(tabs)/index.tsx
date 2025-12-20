@@ -40,8 +40,9 @@ export default function HomeScreen() {
 
   // Tracking Logic
   const startTracking = async () => {
-    if (!busData?.bus?.plate_number) {
-      Alert.alert("Error", "No bus assigned to you.");
+    const trip = busData?.active_trip;
+    if (!trip || trip.status !== 'In_Transit') {
+      Alert.alert("Enforcement", "You must be IN TRANSIT to start tracking.");
       return;
     }
 
@@ -52,23 +53,20 @@ export default function HomeScreen() {
     }
 
     setIsTracking(true);
-
-    // Use plate number as bus_id for MVP demo consistency
     const busId = busData.bus.plate_number;
+    const tripId = trip.id;
 
     try {
-      // Create subscription
       const sub = await Location.watchPositionAsync(
         {
           accuracy: Location.Accuracy.High,
-          timeInterval: 5000, // Every 5 seconds
-          distanceInterval: 10, // Or every 10 meters
+          timeInterval: 5000,
+          distanceInterval: 10,
         },
         async (loc) => {
           setLastLocation(loc);
-
-          // Send to Backend
           const payload = {
+            trip_id: tripId, // Invariant 4
             latitude: loc.coords.latitude,
             longitude: loc.coords.longitude,
             speed: loc.coords.speed || 0,
@@ -77,23 +75,22 @@ export default function HomeScreen() {
           };
 
           try {
-            // Direct call to tracking service (assuming gateway forwards /tracking to tracking-service)
-            // If Gateway is on 8000 and Tracking on 8009, we might need a direct port if Gateway isn't configured.
-            // For now, let's try the Gateway URL first.
             await axios.post(`${TRACKING_URL}/${busId}`, payload, {
-              headers: {
-                'Content-Type': 'application/json',
-                // 'x-driver-token': token // Optional auth
-              }
+              headers: { 'Content-Type': 'application/json' }
             });
             console.log("Loc sent:", payload);
-          } catch (err) {
-            console.log("Failed to send location", err);
+          } catch (err: any) {
+            console.log("Failed to send location", err.response?.data || err.message);
+            if (err.response?.status === 403 || err.response?.status === 400) {
+              Alert.alert("Backend Rejected", "GPS Update Rejected: " + (err.response?.data?.detail || "Invalid State"));
+              setIsTracking(false);
+              if (locationSubscription) locationSubscription.remove();
+            }
           }
         }
       );
       setLocationSubscription(sub);
-      Alert.alert("Trip Started", "You are now live.");
+      Alert.alert("GPS Active", "Location updates started.");
     } catch (e) {
       console.log(e);
       setIsTracking(false);
@@ -107,17 +104,33 @@ export default function HomeScreen() {
       setLocationSubscription(null);
     }
     setIsTracking(false);
-    Alert.alert("Trip Ended", "Tracking stopped.");
   };
 
-  const toggleTrip = () => {
-    if (isTracking) {
-      Alert.alert("End Trip", "Are you sure?", [
-        { text: "Cancel", style: "cancel" },
-        { text: "End Trip", onPress: stopTracking, style: 'destructive' }
-      ]);
-    } else {
-      startTracking();
+  // Trip Actions
+  const handleLifecycleAction = async (action: 'board' | 'start' | 'end') => {
+    const tripId = busData?.active_trip?.id;
+    if (!tripId) return;
+
+    try {
+      // POST /driver-api/trip/{id}/{action}
+      await axios.post(`${COMPANY_URL}/driver-api/trip/${tripId}/${action}`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      Alert.alert("Success", `Trip Updated: ${action.toUpperCase()}`);
+      fetchDriverData(); // Refresh state
+
+      // Auto-start tracking if moving to In_Transit
+      if (action === 'start') {
+        // We need to wait for state refresh, but payload needs trip ID. 
+        // We can manually trigger tracking if we assume success, assuming busData refresh happens fast or we pass tripId manually.
+        // For robustness, let's just refresh. Driver can tap "Start GPS" if separate, but ideally "Start Trip" enables it.
+        // Given the async nature, user pushes "Start Trip" -> Status becomes In_Transit -> "GPS Active" indicator shows.
+      }
+      if (action === 'end') {
+        stopTracking();
+      }
+    } catch (e: any) {
+      Alert.alert("Action Failed", e.response?.data?.detail || "Unknown Error");
     }
   };
 
@@ -126,6 +139,60 @@ export default function HomeScreen() {
     await fetchDriverData();
     setRefreshing(false);
   }, []);
+
+  const renderTripControls = () => {
+    const trip = busData?.active_trip;
+    if (!trip) return (
+      <View style={styles.card}>
+        <Text>No Active Trip Assigned</Text>
+      </View>
+    );
+
+    const status = trip.status;
+
+    return (
+      <View style={styles.tripCardContainer}>
+        <View style={styles.statusBadge}>
+          <Text style={styles.statusText}>STATUS: {status.toUpperCase()}</Text>
+        </View>
+
+        {status === 'Scheduled' && (
+          <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#FF9800' }]} onPress={() => handleLifecycleAction('board')}>
+            <Ionicons name="people" size={24} color="white" />
+            <Text style={styles.btnText}>START BOARDING</Text>
+          </TouchableOpacity>
+        )}
+
+        {status === 'Boarding' && (
+          <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#4CAF50' }]} onPress={() => handleLifecycleAction('start')}>
+            <Ionicons name="bus" size={24} color="white" />
+            <Text style={styles.btnText}>START TRIP</Text>
+          </TouchableOpacity>
+        )}
+
+        {status === 'In_Transit' && (
+          <View>
+            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#F44336', marginBottom: 10 }]} onPress={() => handleLifecycleAction('end')}>
+              <Ionicons name="stop-circle" size={24} color="white" />
+              <Text style={styles.btnText}>END TRIP</Text>
+            </TouchableOpacity>
+            {/* Explicit GPS Toggle if needed, though Start Trip could auto-invoke */}
+            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: isTracking ? '#607D8B' : '#2196F3' }]} onPress={isTracking ? stopTracking : startTracking}>
+              <Ionicons name={isTracking ? "pause" : "navigate"} size={24} color="white" />
+              <Text style={styles.btnText}>{isTracking ? "STOP GPS" : "ACTIVATE GPS"}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {status === 'Completed' && (
+          <View style={{ alignItems: 'center' }}>
+            <Ionicons name="checkmark-circle" size={48} color="green" />
+            <Text>Trip Completed</Text>
+          </View>
+        )}
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -143,27 +210,10 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Start Trip Card */}
-        <TouchableOpacity
-          style={[styles.tripCard, isTracking ? styles.activeTrip : styles.inactiveTrip]}
-          onPress={toggleTrip}
-          activeOpacity={0.8}
-        >
-          <View style={styles.tripIcon}>
-            <Ionicons name={isTracking ? "stop-circle" : "play-circle"} size={64} color="white" />
-          </View>
-          <Text style={styles.tripText}>
-            {isTracking ? "END TRIP" : "START TRIP"}
-          </Text>
-          {isTracking && (
-            <View style={styles.liveIndicator}>
-              <ActivityIndicator color="white" size="small" />
-              <Text style={{ color: 'white', marginLeft: 8 }}>LIVE TRACKING</Text>
-            </View>
-          )}
-        </TouchableOpacity>
+        {/* Lifecycle Controls */}
+        {renderTripControls()}
 
-        {busData?.bus ? (
+        {busData?.bus && (
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Current Bus</Text>
             <View style={styles.row}>
@@ -175,12 +225,9 @@ export default function HomeScreen() {
               </View>
             </View>
           </View>
-        ) : (
-          <View style={[styles.card, { alignItems: 'center' }]}>
-            <Text style={{ color: '#666' }}>No Bus Assigned</Text>
-          </View>
         )}
 
+        {/* ... Actions ... */}
         <View style={styles.actionsGrid}>
           <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/(tabs)/scan')}>
             <View style={[styles.iconBox, { backgroundColor: '#E3F2FD' }]}>
@@ -210,23 +257,13 @@ const styles = StyleSheet.create({
   driverName: { fontSize: 24, fontWeight: 'bold', color: '#333' },
   logoutBtn: { padding: 10, borderRadius: 10, backgroundColor: '#fcebe9' },
 
-  tripCard: {
-    borderRadius: 20,
-    padding: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 25,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 6
+  tripCardContainer: {
+    backgroundColor: 'white', padding: 20, borderRadius: 16, marginBottom: 20, elevation: 4
   },
-  inactiveTrip: { backgroundColor: '#2196F3' },
-  activeTrip: { backgroundColor: '#FF3B30' },
-  tripIcon: { marginBottom: 10 },
-  tripText: { color: 'white', fontSize: 24, fontWeight: '900', letterSpacing: 1 },
-  liveIndicator: { flexDirection: 'row', marginTop: 10, alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 },
+  statusBadge: { backgroundColor: '#eee', padding: 8, borderRadius: 8, alignSelf: 'flex-start', marginBottom: 15 },
+  statusText: { fontWeight: 'bold', color: '#333' },
+  actionBtn: { flexDirection: 'row', padding: 15, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginVertical: 5 },
+  btnText: { color: 'white', fontWeight: 'bold', marginLeft: 10 },
 
   card: { backgroundColor: '#fff', borderRadius: 16, padding: 20, marginBottom: 20, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 },
   cardTitle: { fontSize: 16, fontWeight: '600', color: '#888', marginBottom: 15, textTransform: 'uppercase' },

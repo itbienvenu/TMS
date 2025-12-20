@@ -47,6 +47,30 @@ app.include_router(pos_router)
 def startup():
     engine = get_db_engine("company")
     Base.metadata.create_all(bind=engine)
+    
+    # 2. Redis Trip State Reliability
+    # Rebuild Active Trips from Database
+    from sqlalchemy.orm import sessionmaker
+    from database.models import Schedule, TripStatus
+    from routers.driver_api import redis_client
+    
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    db = SessionLocal()
+    try:
+        active_trips = db.query(Schedule).filter(Schedule.status == TripStatus.In_Transit).all()
+        count = 0
+        for trip in active_trips:
+            if trip.bus_id:
+                try:
+                    redis_client.set(f"bus_trip:{trip.bus_id}", trip.id)
+                    count += 1
+                except Exception as e:
+                    print(f"Redis rebuild error for {trip.id}: {e}")
+        print(f"SYSTEM: Rebuilt {count} active trips in Redis.")
+    except Exception as e:
+        print(f"SYSTEM: Critical Error Rebuilding Redis State: {e}")
+    finally:
+        db.close()
 
 @app.get("/health")
 def health_check():

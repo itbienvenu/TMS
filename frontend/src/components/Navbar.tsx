@@ -23,6 +23,9 @@ const Navbar = () => {
                     </div>
 
                     <div className="d-flex align-items-center gap-3">
+                        <Link to="/services" className="text-secondary text-decoration-none font-weight-medium">
+                            Services
+                        </Link>
                         {isAuthenticated ? (
                             <>
                                 <div className="d-flex align-items-center gap-2 text-secondary">

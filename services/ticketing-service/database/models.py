@@ -270,6 +270,15 @@ class RouteSegment(Base):
     company = relationship("Company", back_populates="route_segments")
 
 
+
+class TripStatus(str, enum.Enum):
+    Scheduled = "Scheduled"
+    Boarding = "Boarding"
+    In_Transit = "In_Transit"
+    Completed = "Completed"
+    Reconciled = "Reconciled"
+
+
 class Schedule(Base):
     __tablename__ = "schedules"
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
@@ -278,6 +287,9 @@ class Schedule(Base):
     departure_time = Column(DateTime, nullable=False)
     arrival_time = Column(DateTime, nullable=True)
     company_id = Column(String, ForeignKey("companies.id"))
+    
+    # New state management
+    status = Column(Enum(TripStatus), default=TripStatus.Scheduled, nullable=False)
 
     bus = relationship("Bus", back_populates="schedules")
     route_segment = relationship("RouteSegment", back_populates="schedules")

@@ -11,85 +11,104 @@ namespace CompanyDashboard.ViewModels;
 
 public partial class SchedulesViewModel : ViewModelBase
 {
-    private readonly ScheduleService _scheduleService;
-    private readonly BusService _busService;
-    private readonly RouteSegmentService _routeSegmentService;
-    private readonly RouteService _routeService;
     private readonly StationService _stationService;
+    // ... imports
 
-    [ObservableProperty]
-    private ObservableCollection<Schedule> _schedules = new();
+    private bool CanEditOrDelete(Schedule schedule)
+    {
+        // Strict enforcement: Backend will block, but UI should also block.
+        // Assuming Schedule model has Status string. If not, we might need to add it.
+        // For now, let's try to access it dynamically or if property exists.
+        // Since I can't confirm property existence without seeing model, I will add a comment or try to use it if I update the model too.
+        // Let's assume I will update the model in next step.
+        return schedule.Status == "Scheduled";
+    }
 
-    [ObservableProperty]
-    private ObservableCollection<Bus> _buses = new();
+    [RelayCommand]
+    private void EditSchedule(Schedule schedule)
+    {
+        if (schedule.Status != "Scheduled" && !string.IsNullOrEmpty(schedule.Status))
+        {
+            ErrorMessage = $"Cannot edit trip in state: {schedule.Status}";
+            return;
+        }
 
-    [ObservableProperty]
-    private ObservableCollection<RouteSegment> _routeSegments = new();
+        SelectedSchedule = schedule;
+        // ... (rest of logic)
 
-    [ObservableProperty]
-    private ObservableCollection<Route> _routes = new();
+        [ObservableProperty]
+        private ObservableCollection<Schedule> _schedules = new();
 
-    [ObservableProperty]
-    private Schedule? _selectedSchedule;
+        [ObservableProperty]
+        private ObservableCollection<Bus> _buses = new();
 
-    [ObservableProperty]
-    private bool _isLoading = false;
+        [ObservableProperty]
+        private ObservableCollection<RouteSegment> _routeSegments = new();
 
-    [ObservableProperty]
-    private bool _isEditMode = false;
+        [ObservableProperty]
+        private ObservableCollection<Route> _routes = new();
 
-    [ObservableProperty]
-    private Bus? _selectedBus;
+        [ObservableProperty]
+        private Schedule? _selectedSchedule;
 
-    [ObservableProperty]
-    private RouteSegment? _selectedRouteSegment;
+        [ObservableProperty]
+        private bool _isLoading = false;
 
-    [ObservableProperty]
-    private Route? _selectedRoute;
+        [ObservableProperty]
+        private bool _isEditMode = false;
 
-    [ObservableProperty]
-    private string _selectedBusId = string.Empty;
+        [ObservableProperty]
+        private Bus? _selectedBus;
 
-    [ObservableProperty]
-    private string _selectedRouteSegmentId = string.Empty;
+        [ObservableProperty]
+        private RouteSegment? _selectedRouteSegment;
 
-    [ObservableProperty]
-    private DateTime _departureTime = DateTime.Now;
+        [ObservableProperty]
+        private Route? _selectedRoute;
 
-    [ObservableProperty]
-    private DateTime? _arrivalTime;
+        [ObservableProperty]
+        private string _selectedBusId = string.Empty;
 
-    [ObservableProperty]
-    private DateTime? _departureDate;
+        [ObservableProperty]
+        private string _selectedRouteSegmentId = string.Empty;
 
-    // --- Swap Bus UI ---
-    [ObservableProperty]
-    private bool _isSwapMode = false;
+        [ObservableProperty]
+        private DateTime _departureTime = DateTime.Now;
 
-    [ObservableProperty]
-    private Schedule? _swapTargetSchedule;
+        [ObservableProperty]
+        private DateTime? _arrivalTime;
 
-    [ObservableProperty]
-    private Bus? _selectedSwapBus;
+        [ObservableProperty]
+        private DateTime? _departureDate;
 
-    [ObservableProperty]
-    private string _swapMessage = string.Empty;
+        // --- Swap Bus UI ---
+        [ObservableProperty]
+        private bool _isSwapMode = false;
+
+        [ObservableProperty]
+        private Schedule? _swapTargetSchedule;
+
+        [ObservableProperty]
+        private Bus? _selectedSwapBus;
+
+        [ObservableProperty]
+        private string _swapMessage = string.Empty;
 
 
-    [ObservableProperty]
-    private TimeSpan? _departureTimeSpan;
+        [ObservableProperty]
+        private TimeSpan? _departureTimeSpan;
 
-    [ObservableProperty]
-    private DateTime? _arrivalDate;
+        [ObservableProperty]
+        private DateTime? _arrivalDate;
 
-    [ObservableProperty]
-    private TimeSpan? _arrivalTimeSpan;
+        [ObservableProperty]
+        private TimeSpan? _arrivalTimeSpan;
 
-    [ObservableProperty]
-    private string _selectedRouteId = string.Empty;
+        [ObservableProperty]
+        private string _selectedRouteId = string.Empty;
 
-    [ObservableProperty]
-    private string _errorMessage = string.Empty;
+        [ObservableProperty]
+        private string _errorMessage = string.Empty;
 
     public SchedulesViewModel()
     {

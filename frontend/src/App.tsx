@@ -10,6 +10,7 @@ import PaymentPage from './pages/PaymentPage';
 import DashboardPage from './pages/DashboardPage';
 import MyTicketsPage from './pages/MyTicketsPage';
 import TrackBus from './pages/TrackBus';
+import ServicesPage from './pages/ServicesPage';
 import { useAuthStore } from './store/authStore';
 
 import ChatWidget from './components/ChatWidget';
@@ -30,6 +31,7 @@ function App() {
           <Route path="/search" element={<SearchResults />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/services" element={<ServicesPage />} />
           <Route path="/book/:scheduleId" element={<BookTicketPage />} />
           <Route path="/payment/:ticketId" element={<PaymentPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />

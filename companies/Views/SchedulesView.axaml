@@ -23,11 +23,12 @@
                     </Grid>
 
                     <!-- Table Header -->
-                     <Grid Grid.Row="1" ColumnDefinitions="160,160,100,*" Margin="15,0,15,5">
+                     <Grid Grid.Row="1" ColumnDefinitions="140,140,80,100,*" Margin="15,0,15,5">
                         <TextBlock Grid.Column="0" Text="DEPARTURE" FontWeight="SemiBold" Foreground="{StaticResource LightTextBrush}" FontSize="12"/>
                         <TextBlock Grid.Column="1" Text="ARRIVAL" FontWeight="SemiBold" Foreground="{StaticResource LightTextBrush}" FontSize="12"/>
                         <TextBlock Grid.Column="2" Text="BUS ID" FontWeight="SemiBold" Foreground="{StaticResource LightTextBrush}" FontSize="12"/>
-                        <TextBlock Grid.Column="3" Text="ACTIONS" FontWeight="SemiBold" Foreground="{StaticResource LightTextBrush}" FontSize="12" HorizontalAlignment="Right"/>
+                        <TextBlock Grid.Column="3" Text="STATUS" FontWeight="SemiBold" Foreground="{StaticResource LightTextBrush}" FontSize="12"/>
+                        <TextBlock Grid.Column="4" Text="ACTIONS" FontWeight="SemiBold" Foreground="{StaticResource LightTextBrush}" FontSize="12" HorizontalAlignment="Right"/>
                     </Grid>
                     <Separator Grid.Row="1" VerticalAlignment="Bottom" Background="{StaticResource BorderBrush}" Margin="0,5"/>
 
@@ -35,12 +36,13 @@
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1" Padding="10">
-                                    <Grid ColumnDefinitions="160,160,100,*">
+                                    <Grid ColumnDefinitions="140,140,80,100,*">
                                         <TextBlock Grid.Column="0" Text="{Binding DepartureTime, StringFormat='{}{0:g}'}" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource DarkTextBrush}"/>
                                         <TextBlock Grid.Column="1" Text="{Binding ArrivalTime, StringFormat='{}{0:g}'}" VerticalAlignment="Center" Foreground="{StaticResource LightTextBrush}"/>
                                         <TextBlock Grid.Column="2" Text="{Binding BusId}" VerticalAlignment="Center" Foreground="{StaticResource PrimaryBlueBrush}"/>
+                                        <TextBlock Grid.Column="3" Text="{Binding Status}" VerticalAlignment="Center" FontWeight="Bold" Foreground="#E67E22"/>
                                         
-                                        <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="5" HorizontalAlignment="Right">
+                                        <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="5" HorizontalAlignment="Right">
                                             <Button Classes="Ghost" Content="🚌 Swap" Padding="8" Command="{Binding $parent[UserControl].DataContext.OpenSwapBusDialogCommand}" CommandParameter="{Binding}" ToolTip.Tip="Swap Bus"/>
                                             <Button Classes="Ghost" Content="✏️" Padding="8" Click="OnEditSchedule" ToolTip.Tip="Edit"/>
                                             <Button Classes="Ghost" Content="🗑️" Padding="8" Click="OnDeleteSchedule" Foreground="Red" ToolTip.Tip="Delete"/>
