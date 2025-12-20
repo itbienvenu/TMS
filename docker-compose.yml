@@ -52,7 +52,7 @@ services:
       dockerfile: services/auth-service/Dockerfile
     image: bienvenugashema/ticketing-auth-service:latest
     environment:
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=postgresql://itbienvenu:123@postgres:5432/ticketing_system
       - JWT_SECRET=${JWT_SECRET}
       - SECRET_KEY=${SECRET_KEY}
       - ALGORITHM=${ALGORITHM}
@@ -74,7 +74,7 @@ services:
       dockerfile: services/user-service/Dockerfile
     image: bienvenugashema/ticketing-user-service:latest
     environment:
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=postgresql://itbienvenu:123@postgres:5432/ticketing_system
     ports:
       - "8002:8002"
     depends_on:
@@ -90,7 +90,7 @@ services:
       dockerfile: services/company-service/Dockerfile
     image: bienvenugashema/ticketing-company-service:latest
     environment:
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=postgresql://itbienvenu:123@postgres:5432/ticketing_system
       - SECRET_KEY=${SECRET_KEY}
       - ALGORITHM=${ALGORITHM}
       - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
@@ -109,7 +109,7 @@ services:
       dockerfile: services/ticketing-service/Dockerfile
     image: bienvenugashema/ticketing-ticketing-service:latest
     environment:
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=postgresql://itbienvenu:123@postgres:5432/ticketing_system
       - TICKET_SECRET_KEY=${TICKET_SECRET_KEY}
       - SECRET_KEY=${SECRET_KEY}
       - ALGORITHM=${ALGORITHM}
@@ -129,7 +129,7 @@ services:
       dockerfile: services/qr-service/Dockerfile
     image: bienvenugashema/ticketing-qr-service:latest
     environment:
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=postgresql://itbienvenu:123@postgres:5432/ticketing_system
       - TICKET_SECRET_KEY=${TICKET_SECRET_KEY}
       - SECRET_KEY=${SECRET_KEY}
       - ALGORITHM=${ALGORITHM}
@@ -149,7 +149,7 @@ services:
       dockerfile: services/payment-service/Dockerfile
     image: bienvenugashema/ticketing-payment-service:latest
     environment:
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=postgresql://itbienvenu:123@postgres:5432/ticketing_system
       - SECRET_KEY=${SECRET_KEY}
       - ALGORITHM=${ALGORITHM}
       - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
@@ -168,7 +168,7 @@ services:
       dockerfile: services/super-admin-service/Dockerfile
     image: bienvenugashema/ticketing-super-admin-service:latest
     environment:
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=postgresql://itbienvenu:123@postgres:5432/ticketing_system
       - SECRET_KEY=${SECRET_KEY}
       - ALGORITHM=${ALGORITHM}
       - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}

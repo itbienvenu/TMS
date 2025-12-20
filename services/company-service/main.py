@@ -14,6 +14,7 @@ from routers.search import router as search_router
 from routers.roles import router as roles_router
 from routers.permissions import router as permissions_router
 from routers.driver_api import router as driver_api_router
+from routers.pos import router as pos_router
 from common.database import get_db_engine, Base
 
 app = FastAPI(title="Company Service", docs_url="/docs", openapi_url="/openapi.json")
@@ -39,6 +40,7 @@ app.include_router(search_router)
 app.include_router(roles_router)
 app.include_router(permissions_router)
 app.include_router(driver_api_router)
+app.include_router(pos_router)
 
 
 @app.on_event("startup")
