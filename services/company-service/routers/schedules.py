@@ -1,15 +1,79 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, and_, func
 from typing import List, Optional
 from datetime import datetime, date
 from database.dbs import get_db
-from database.models import Schedule, Bus, RouteSegment, Route, BusStation, Company
+from database.models import Schedule, Bus, RouteSegment, Route, BusStation, Company, Ticket
 from schemas.SchedulesScheme import ScheduleCreate, ScheduleResponse, ScheduleUpdate
 from methods.functions import get_current_user
 from methods.permissions import get_current_company_user
 
 router = APIRouter(prefix="/api/v1/schedules", tags=["Schedules"])
+
+# Swap Bus Endpoint
+@router.post("/{schedule_id}/swap-bus")
+def swap_bus_for_schedule(
+    schedule_id: str,
+    new_bus_id: str = Body(..., embed=True),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_company_user)
+):
+    """
+    Seamlessly migrates a schedule and all its passengers to a new bus.
+    Validates capacity before migration.
+    """
+    # 1. Get Schedule
+    schedule = db.query(Schedule).filter(
+        Schedule.id == schedule_id,
+        Schedule.company_id == current_user.company_id
+    ).first()
+    
+    if not schedule:
+        raise HTTPException(status_code=404, detail="Schedule not found")
+
+    # 2. Get New Bus
+    new_bus = db.query(Bus).filter(
+        Bus.id == new_bus_id,
+        Bus.company_id == current_user.company_id
+    ).first()
+    
+    if not new_bus:
+        raise HTTPException(status_code=404, detail="New bus not found")
+
+    # 3. Check Capacity
+    # We count all tickets that are NOT cancelled
+    sold_tickets_count = db.query(Ticket).filter(
+        Ticket.schedule_id == schedule_id,
+        Ticket.status != "cancelled"
+    ).count()
+
+    if new_bus.capacity < sold_tickets_count:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Migration Failed: New bus capacity ({new_bus.capacity}) is less than sold tickets ({sold_tickets_count})."
+        )
+
+    # 4. Perform Swap
+    old_bus_id = schedule.bus_id
+    schedule.bus_id = new_bus_id
+    
+    # 5. Migrate Tickets
+    # Update all non-cancelled tickets to point to the new bus
+    db.query(Ticket).filter(
+        Ticket.schedule_id == schedule_id
+    ).update({Ticket.bus_id: new_bus_id}, synchronize_session=False)
+
+    db.commit()
+    db.refresh(schedule)
+
+    return {
+        "message": "Bus swapped successfully. Passengers migrated.", 
+        "schedule_id": schedule.id, 
+        "old_bus": old_bus_id, 
+        "new_bus_plate": new_bus.plate_number,
+        "tickets_migrated": sold_tickets_count
+    }
 
 #  Create a new schedule
 @router.post("/", response_model=ScheduleResponse)

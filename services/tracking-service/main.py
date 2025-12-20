@@ -33,6 +33,8 @@ class LocationUpdate(BaseModel):
     speed: float = Field(0.0, description="Speed in m/s")
     heading: float = Field(0.0, description="Heading in degrees (0-360)")
     timestamp: float = Field(..., description="Unix timestamp of the fix")
+    status: Optional[str] = "live" # live, offline, critical_battery, estimated
+    battery_level: Optional[float] = None
     
     # Optional metadata that might be sent
     # In a real app, this should probably come from a separate 'Trip' service, 
