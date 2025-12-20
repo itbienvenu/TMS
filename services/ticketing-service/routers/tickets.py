@@ -131,6 +131,34 @@ async def create_ticket(ticket_req: TicketCreate, db: Session = Depends(get_db))
     # Fetch company name
     comp = db.query(Company).filter(Company.id == company_id).first()
 
+    # 4. Publish Event for Notifications
+    try:
+        import pika
+        import json
+        rabbitmq_url = os.environ.get("RABBITMQ_URL", "amqp://guest:guest@rabbitmq:5672/")
+        params = pika.URLParameters(rabbitmq_url)
+        connection = pika.BlockingConnection(params)
+        channel = connection.channel()
+        channel.exchange_declare(exchange='ticketing_events', exchange_type='topic')
+        
+        event_data = {
+            "ticket_id": new_ticket.id,
+            "user_email": user.email,
+            "user_phone": user.phone_number,
+            "route": f"{origin_name} -> {destination_name}",
+            "bus": bus.plate_number,
+            "company": comp.name if comp else "Unknown"
+        }
+        
+        channel.basic_publish(
+            exchange='ticketing_events',
+            routing_key='ticket.sold',
+            body=json.dumps(event_data)
+        )
+        connection.close()
+    except Exception as e:
+        print(f"Failed to publish ticket event: {e}")
+
     return TicketResponse(
         id=new_ticket.id,
         user_id=new_ticket.user_id,
