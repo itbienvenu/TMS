@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Send, MessageCircle, X, Loader, Mic, MicOff } from 'lucide-react';
@@ -29,7 +30,7 @@ const ChatWidget: React.FC = () => {
     useEffect(() => {
         let storedSessionId = localStorage.getItem('chat_session_id');
         if (!storedSessionId) {
-            storedSessionId = crypto.randomUUID();
+            storedSessionId = uuidv4();
             localStorage.setItem('chat_session_id', storedSessionId);
         }
         setSessionId(storedSessionId);
