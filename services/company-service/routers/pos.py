@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
-from services.common.database import get_db
+from database.dbs import get_db
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/pos", tags=["Point of Sale"])

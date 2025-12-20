@@ -138,6 +138,44 @@ async def company_login_verify(
     }
 
 
+@router.post("/company/login")
+async def company_login_direct(
+    payload: CompanyLoginStart,  # Reusing schema with email/password
+    db: Session = Depends(get_db),
+):
+    """
+    Direct login for Company Users (Agents/Admins) skipping 2FA for MVP/Mobile App compatibility.
+    """
+    company_user = db.query(CompanyUser).filter(
+        or_(
+            CompanyUser.login_email == payload.login_email,
+            CompanyUser.email == payload.login_email
+        )
+    ).first()
+    
+    if not company_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Company user not found")
+
+    if not verify_password(payload.password, company_user.password_hash):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+
+    # Access Token
+    token = create_access_token(
+        data={
+            "sub": str(company_user.id),
+            "company_id": str(company_user.company_id),
+            "user_type": "company_user"
+        },
+        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+    )
+
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user_id": company_user.id,
+        "full_name": company_user.full_name,
+        "role": "agent" # Placeholder, actual roles fetched via /me
+    }
 @router.post("/driver/login")
 async def driver_login(payload: DriverLogin, db: Session = Depends(get_db)):
     # Authenticate Driver

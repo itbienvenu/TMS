@@ -16,8 +16,8 @@
             </StackPanel>
 
             <TabControl Grid.Row="1">
-                <!-- Tab: Staff Members -->
-                <TabItem Header="Staff Members" Foreground="Black"  FontSize="16" FontWeight="SemiBold">
+                <!-- Tab: Staff & Agents -->
+                <TabItem Header="Staff &amp; Agents" Foreground="Black"  FontSize="16" FontWeight="SemiBold">
                     <Grid ColumnDefinitions="*,350" Margin="0,20,0,0">
                         <!-- Users List -->
                         <Border Grid.Column="0" Classes="Card" Margin="0,0,20,0">
