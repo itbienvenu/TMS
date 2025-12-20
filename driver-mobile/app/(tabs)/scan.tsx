@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, Button, Alert, TouchableOpacity, ActivityIndicator, Platform, Modal } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import * as Battery from 'expo-battery';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +18,30 @@ export default function ScanScreen() {
     const [result, setResult] = useState<any>(null);
     const { token } = useAuth();
     const isFocused = useIsFocused(); // Only active camera when focused
+
+    // Battery Monitoring
+    useEffect(() => {
+        let subscription: any = null;
+        const setupBatteryMonitor = async () => {
+            const batteryLevel = await Battery.getBatteryLevelAsync();
+            if (batteryLevel > 0 && batteryLevel < 0.15) { // < 15%
+                Alert.alert("Low Battery", "Battery is critical. Uploading offline data now.");
+                // In a real scenario, trigger background sync here via OfflineStorage
+                // await OfflineStorage.forceSyncAll();
+            }
+
+            subscription = Battery.addBatteryLevelListener(({ batteryLevel }) => {
+                if (batteryLevel < 0.05) { // < 5% Panic Mode
+                    console.log("CRITICAL BATTERY: Shutting down non-essentials.");
+                    // Trigger 'Last Breath' sync logic here
+                }
+            });
+        };
+        setupBatteryMonitor();
+        return () => {
+            if (subscription) subscription.remove();
+        }
+    }, []);
 
     if (!permission) {
         // Camera permissions are still loading.
