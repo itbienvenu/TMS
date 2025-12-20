@@ -1,6 +1,6 @@
-# Mwimule Ticketing System - Comprehensive System Documentation
+# TMS (Tickets Management System) - Comprehensive System Documentation
 
-**Version:** 1.2.0  
+**Version:** 1.3.0  
 **Date:** December 20, 2025  
 **Author:** Antigravity AI  
 
@@ -8,9 +8,9 @@
 
 ## 1. Executive Summary
 
-**Mwimule** is an advanced, enterprise-grade distributed ticketing and fleet management system designed for the transportation industry. It provides a unified ecosystem that connects passengers, transport companies, drivers, and administrators. 
+**TMS (Tickets Management System)** is an advanced, enterprise-grade distributed ticketing and fleet management system designed for the transportation industry. It provides a unified ecosystem that connects passengers, transport companies, drivers, and administrators. 
 
-The system automates the entire lifecycle of bus travel: from route planning, scheduling, and bus swapping to secure ticket booking, payments, QR code validation, and real-time GPS tracking. Built on a microservices architecture, it ensures high scalability, fault tolerance, and seamless integration between web, mobile, and desktop client applications.
+The system automates the entire lifecycle of bus travel: from route planning, scheduling, and dynamic bus swapping to secure ticket booking, payments, QR code validation, and real-time GPS tracking. Built on a microservices architecture, it ensures high scalability, fault tolerance, and seamless integration between web, mobile, and desktop client applications.
 
 ---
 
@@ -25,12 +25,12 @@ The backend is composed of several isolated services running in Docker container
 | :--- | :--- | :--- |
 | **Gateway** | Nginx | **The Entry Point.** Reverse proxy that routes external requests from apps to internal microservices. Handles SSL, load balancing, and static path routing. |
 | **Auth Service** | Python (FastAPI) | Manages User Identity (Sign up/Login), JWT Token issuance, and Role-Based Access Control (RBAC). |
-| **Company Service** | Python (FastAPI) | The "Brain". Manages Companies, Buses, Routes, Segments, Schedules, and Driver assignments. Handles logic like **Bus Swapping**. |
+| **Company Service** | Python (FastAPI) | The "Brain". Manages Companies, Buses, Routes, Segments, Schedules, and Driver assignments. Handles logic like **Bus Swapping** and **Schedule Status validation**. |
 | **Ticketing Service** | Python (FastAPI) | Handles Ticket creation, searching, seat availability, and generation of secure QR codes. |
-| **Payment Service** | Python (FastAPI) | Processes payments. Uses **Redis** for idempotency keys to prevent double-charging and handles webhooks from providers. |
+| **Payment Service** | Python (FastAPI) | Processes payments (PayPal/Mobile Money). Uses **Redis** for idempotency keys to prevent double-charging and handles webhooks. |
 | **Notification Service** | Python (FastAPI) | **Event-Driven.** Listens to RabbitMQ for events (Ticket Sold, Trip Cancelled) and sends SMS/Emails. |
 | **Tracking Service** | Python (WebSocket) | Real-time GPS tracking of buses via WebSockets and Redis geospatial data. |
-| **AI Service** | Python (FastAPI) | Powered by LLMs (OpenAI/Gemini/Groq). Assists users with natural language queries ("Find me a bus to Kigali") and Admins with SQL generation. |
+| **AI Service** | Python (FastAPI) | Powered by **Google Gemini**. Assists users with natural language queries ("Find me a bus to Kigali") and Admins with SQL generation. |
 | **QR Service** | Python (FastAPI) | Dedicated service for verifying the cryptographic `HMAC-SHA256` signatures on ticket QR codes. |
 | **Super Admin Service** | Python (FastAPI) | Provides system-wide analytics, company onboarding, and financial reporting. |
 
@@ -46,37 +46,37 @@ The backend is composed of several isolated services running in Docker container
 
 ## 3. Client Applications Breakdown
 
-Mwimule offers interfaces for four distinct types of users.
+TMS offers interfaces for four distinct types of users.
 
 ### 3.1 Customer Web Portal (Frontend)
 *   **Tech Stack:** React.js, Vite, TypeScript, Tailwind CSS, Bootstrap.
 *   **Features:**
     *   **Search & Booking:** Search buses by Origin, Destination, and Date.
     *   **User Accounts:** Profile management and "My Tickets" history.
-    *   **AI Chat Widget:** A floating assistant to help find buses via text or voice.
+    *   **AI Chat Widget:** A floating assistant powered by Gemini to help find buses via text or voice.
     *   **Real-time Tracking:** Map view showing the live location of the bus for a booked ticket.
     *   **Digital Hub:** Users download/view their QR tickets directly from the portal.
 
 ### 3.2 Super Admin Dashboard
 *   **Tech Stack:** React.js, Material UI (MUI).
-*   **Purpose:** For the Platform Owners (Mwimule Admins).
+*   **Purpose:** For the Platform Owners (TMS Admins).
 *   **Features:**
     *   **Company Management:** Onboard new transport companies.
     *   **Global Analytics:** View total revenue, total tickets sold, active buses.
     *   **AI SQL Analyst:** An interface to ask questions in English ("Show me tickets sold last week") which generates and runs SQL queries safely.
 
 ### 3.3 Company Desktop Software
-*   **Tech Stack:** .NET / Avalonia UI (Cross-Platform Desktop App).
+*   **Tech Stack:** .NET 8 / Avalonia UI (Cross-Platform Desktop App).
 *   **Purpose:** The daily operational tool for Transport Company managers.
 *   **Features:**
-    *   **Fleet Management:** Add/Edit Buses and asign Drivers.
+    *   **Fleet Management:** Add/Edit Buses and assign Drivers.
     *   **Route Planning:** Define Routes (e.g., "Kigali - Musanze") and Segments.
-    *   **Scheduling:** Create trip schedules (Time, Price, Bus).
-    *   **Offline Capability:** Some features persist locally if internet is lost.
+    *   **Advanced Scheduling:** Create trip schedules, enforce status checks (e.g., cannot edit "Departed" trips), and perform **Bus Swaps** in case of breakdowns.
+    *   **Offline Capability:** Critical operations persist locally if internet is lost.
 
 ### 3.4 Mobile Applications
-*   **Driver App:** (React Native/Expo) - Drivers login to see their assigned trips, start trips, and broadcast their GPS location.
-*   **POS App:** (React Native/Expo) - Station agents ("Protokol") use this to sell tickets for cash at bus stations and print receipts.
+*   **Driver App:** (React Native/Expo) - Drivers login to see their assigned trips, start trips, broadcast their GPS location, and **Scan Passenger QR Codes** for boarding.
+*   **POS App:** (React Native/Expo) - Station agents ("Protokol") use this to sell tickets for cash at bus stations. Features **Hardened Offline Sync** with batched auditing to prevent fraud during internet outages.
 
 ---
 
@@ -135,11 +135,9 @@ Mwimule offers interfaces for four distinct types of users.
 
 *   **Public IP:** `3.12.248.83`
 *   **API Gateway:** `http://3.12.248.83:8000/`
-    *   **Health:** `GET /api/health`
 *   **Customer Portal:** `http://3.12.248.83:8000/`
 *   **Super Admin Dashboard:** `http://3.12.248.83:8000/super-admin/`
-    *   *Note: Requires Super Admin credentials to login.*
 
 ---
 
-*This document serves as the primary reference for the Mwimule Ticketing System architecture and functionality.*
+*This document serves as the primary reference for the TMS (Tickets Management System) architecture and functionality.*

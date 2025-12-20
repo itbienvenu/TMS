@@ -1,7 +1,8 @@
-# Business Strategy & Go-to-Market Plan for Mwimule
+# Business Strategy & Go-to-Market Plan for TMS
+# (Tickets Management System)
 
 **System Value Proposition:**
-Mwimule is not just a ticketing website; it is an **End-to-End Transport Operating System**. It replaces disparate tools (Excel sheets, paper tickets, standalone GPS trackers) with a single, unified ecosystem that runs on modern, scalable infrastructure.
+TMS is not just a ticketing website; it is an **End-to-End Transport Operating System**. It replaces disparate tools (Excel sheets, paper tickets, standalone GPS trackers) with a single, unified ecosystem that runs on modern, scalable infrastructure.
 
 ---
 
@@ -11,9 +12,9 @@ Mwimule is not just a ticketing website; it is an **End-to-End Transport Operati
 *   **The Pitch:** "Stop losing revenue to fraud and manual errors."
 *   **Pain Points:** Cash theft by conductors, double-booked seats, lack of visibility into where buses are.
 *   **Your Solution:**
-    *   **The POS App:** Prevents cash theft by generating digital records at the station.
-    *   **The Driver App:** Tracks the bus location, preventing unauthorized detours.
-    *   **The Desktop App:** Gives managers control even with spotty internet.
+    *   **The POS App:** Prevents cash theft by generating digital records at the station, even when offline.
+    *   **The Driver App:** Tracks the bus location and validates passengers via QR codes.
+    *   **The Desktop App:** Gives managers control (Fleet, Schedules, Bus Swaps) even with spotty internet.
 *   **Revenue Model:** Charge a monthly subscription fee (e.g., $200/month per company) OR a commission per ticket (e.g., 2%).
 
 ### 1.2 Government Transport Agencies (B2G)
@@ -32,9 +33,9 @@ Mwimule is not just a ticketing website; it is an **End-to-End Transport Operati
 
 When pitching, highlight these technical differentiators:
 
-1.  **Offline-First Architecture:** Unlike competitors that crash when the internet dips, your **Avalonia Desktop App** and **POS Mobile App** are designed to keep working. This is critical for transport operations.
-2.  **AI-Powered:** Most ticketing systems are dumb databases. Yours has an **AI Assistant** (configured in `ai-service`) that helps non-technical admins generate SQL reports just by asking questions. This lowers the barrier to entry for less tech-savvy managers.
-3.  **Real-Time Tracking:** You built a dedicated `tracking-service` using Redis & WebSockets. This isn't just a map; it's a fleet management tool.
+1.  **Offline-First & Hardened Sync:** Unlike competitors that crash when the internet dips, your **Avalonia Desktop App** and **POS Mobile App** are designed to keep working. The POS app uses batched auditing to prevent fraud during outages.
+2.  **AI-Powered Support:** Most ticketing systems are dumb databases. Yours has an **AI Assistant** (powered by Google Gemini) that helps users find buses and helps Admins find data. This lowers the barrier to entry and reduces support costs.
+3.  **Real-Time Fleet Control:** You built a dedicated `tracking-service` using Redis & WebSockets. This isn't just a map; it's a fleet management tool that allows for dynamic **Bus Swapping** in case of breakdowns.
 
 ---
 
@@ -50,12 +51,12 @@ Investors don't fund code; they fund **traction**.
 ### Step 2: Prepare the Pitch Deck
 Your deck needs 10 slides:
 1.  **Problem:** "Bus companies lose 30% of revenue to cash leakage."
-2.  **Solution:** Mwimule - The Operating System for Transport.
+2.  **Solution:** TMS - The Operating System for Transport.
 3.  **Demo:** Screenshot of your Real-time Tracking and Admin Dashboard.
 4.  **Market Size:** "Daily bus commuters in [Your Region] = X Million people."
 5.  **Business Model:** 5% Commission on every digital ticket.
 6.  **Traction:** "Running live with [Local Company Name]."
-7.  **Technology:** "Microservices, Scalable, AI-Integrated."
+7.  **Technology:** "Microservices, Scalable, AI-Integrated, Offline-Resilient."
 8.  **Team:** You (The Engineer/CTO).
 9.  **Ask:** "$50k to hire sales staff and buy server infrastructure."
 
