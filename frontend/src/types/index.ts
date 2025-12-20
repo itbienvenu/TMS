@@ -111,6 +111,7 @@ export interface PaymentCreate {
     ticket_id: string;
     phone_number?: string;
     provider: 'momo' | 'tigocash' | 'card' | 'paypal';
+    idempotency_key?: string;
 }
 
 export interface Role {

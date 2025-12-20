@@ -100,4 +100,30 @@ async def process_mock_payment(
             json.dumps(response_data)
         )
     
+    # 3. Publish Event for Notifications
+    try:
+        import pika
+        rabbitmq_url = os.environ.get("RABBITMQ_URL", "amqp://guest:guest@rabbitmq:5672/")
+        params = pika.URLParameters(rabbitmq_url)
+        connection = pika.BlockingConnection(params)
+        channel = connection.channel()
+        channel.exchange_declare(exchange='ticketing_events', exchange_type='topic')
+        
+        event_data = {
+            "ticket_id": ticket.id,
+            "user_email": user.email,
+            "user_phone": user.phone_number,
+            "amount": amount,
+            "route": f"{route.origin} -> {route.destination}"
+        }
+        
+        channel.basic_publish(
+            exchange='ticketing_events',
+            routing_key='ticket.paid',
+            body=json.dumps(event_data)
+        )
+        connection.close()
+    except Exception as e:
+        print(f"Failed to publish payment event: {e}")
+
     return new_payment

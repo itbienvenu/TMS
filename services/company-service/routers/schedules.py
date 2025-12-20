@@ -67,6 +67,36 @@ def swap_bus_for_schedule(
     db.commit()
     db.refresh(schedule)
 
+    # 6. Publish Event for Notifications
+    try:
+        import pika
+        import json
+        import os
+        
+        rabbitmq_url = os.environ.get("RABBITMQ_URL", "amqp://guest:guest@rabbitmq:5672/")
+        params = pika.URLParameters(rabbitmq_url)
+        connection = pika.BlockingConnection(params)
+        channel = connection.channel()
+        
+        channel.exchange_declare(exchange='ticketing_events', exchange_type='topic')
+        
+        message = {
+            "event": "bus_swap",
+            "schedule_id": schedule.id,
+            "old_bus": old_bus_id,
+            "new_bus": new_bus_id,
+            "affected_passengers": sold_tickets_count
+        }
+        
+        channel.basic_publish(
+            exchange='ticketing_events',
+            routing_key='bus.swapped',
+            body=json.dumps(message)
+        )
+        connection.close()
+    except Exception as e:
+        print(f"Failed to publish swap event: {e}")
+
     return {
         "message": "Bus swapped successfully. Passengers migrated.", 
         "schedule_id": schedule.id, 

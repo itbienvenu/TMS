@@ -94,6 +94,7 @@ services:
       - SECRET_KEY=${SECRET_KEY}
       - ALGORITHM=${ALGORITHM}
       - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
     ports:
       - "8003:8003"
     depends_on:

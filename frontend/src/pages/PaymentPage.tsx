@@ -4,6 +4,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { paymentsApi } from '../api/payments';
 import { ticketsApi } from '../api/tickets';
 import { CreditCard, Smartphone, Loader, CheckCircle, XCircle } from 'lucide-react';
+import { v4 as uuidv4 } from 'uuid';
 
 
 const PaymentPage = () => {
@@ -40,6 +41,8 @@ const PaymentPage = () => {
 
     const paymentStatus = ticket?.status === 'paid' || ticket?.status === 'active' ? 'success' : 'pending';
 
+
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         // Phone number required only for mobile money
@@ -49,10 +52,14 @@ const PaymentPage = () => {
         }
         if (!ticketId) return;
 
+        // Generate Idempotency Key
+        const idempotencyKey = uuidv4();
+
         createPaymentMutation.mutate({
             ticket_id: ticketId,
             phone_number: (selectedProvider === 'momo' || selectedProvider === 'tigocash') ? phoneNumber : undefined,
             provider: selectedProvider,
+            idempotency_key: idempotencyKey
         });
     };
 

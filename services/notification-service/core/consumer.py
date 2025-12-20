@@ -16,15 +16,13 @@ async def process_message(message: aio_pika.IncomingMessage):
             
             logger.info(f"Received Event: {event_type} | Data: {data}")
             
-            if event_type == "ticket.sold":
-                # Send Email + SMS to User
+            if event_type == "ticket.sold" or event_type == "ticket.paid":
                 email = data.get("user_email")
                 phone = data.get("user_phone")
-                # Call logic to send...
-                logger.info(f"Creating Ticket Notification for {email}")
+                route = data.get("route")
+                logger.info(f"📧 Sending Payment Confirmation to {email} for route {route}")
 
             elif event_type == "bus.swapped":
-                # Notify Passengers
                 logger.info(f"Bus Swap Alert: Triggering alerts for Schedule {data.get('schedule_id')}")
 
         except Exception as e:
@@ -36,13 +34,10 @@ async def start_rabbitmq_consumer():
             connection = await aio_pika.connect_robust(RABBITMQ_URL)
             channel = await connection.channel()
             
-            # Declare Exchange
             exchange = await channel.declare_exchange("ticketing_events", aio_pika.ExchangeType.TOPIC)
             
-            # Declare Queue
             queue = await channel.declare_queue("notification_queue", durable=True)
             
-            # Bind Queue to Topics
             await queue.bind(exchange, routing_key="ticket.#")
             await queue.bind(exchange, routing_key="bus.#") 
             
@@ -50,7 +45,6 @@ async def start_rabbitmq_consumer():
             
             await queue.consume(process_message)
             
-            # Keep running
             await asyncio.Future()
             
         except Exception as e:

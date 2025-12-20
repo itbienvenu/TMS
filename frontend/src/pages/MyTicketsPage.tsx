@@ -4,6 +4,7 @@ import { ticketsApi } from '../api/tickets';
 import { paymentsApi } from '../api/payments';
 import { Loader, Printer, Eye, X, CreditCard, Smartphone, Wallet } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
+import { v4 as uuidv4 } from 'uuid';
 import { useAuthStore } from '../store/authStore';
 import type { Ticket, PaymentCreate } from '../types';
 
@@ -41,6 +42,8 @@ const MyTicketsPage = () => {
         window.print();
     };
 
+
+
     const handlePaySubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!paymentTicket) return;
@@ -51,10 +54,14 @@ const MyTicketsPage = () => {
             return;
         }
 
+        // Generate Idempotency Key
+        const idempotencyKey = uuidv4();
+
         const paymentData: PaymentCreate = {
             ticket_id: paymentTicket.id,
             provider: paymentProvider,
-            phone_number: (paymentProvider === 'momo' || paymentProvider === 'tigocash') ? phoneNumber : undefined
+            phone_number: (paymentProvider === 'momo' || paymentProvider === 'tigocash') ? phoneNumber : undefined,
+            idempotency_key: idempotencyKey
         };
 
         paymentMutation.mutate(paymentData);
