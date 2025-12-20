@@ -41,6 +41,7 @@
                                         <TextBlock Grid.Column="2" Text="{Binding BusId}" VerticalAlignment="Center" Foreground="{StaticResource PrimaryBlueBrush}"/>
                                         
                                         <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="5" HorizontalAlignment="Right">
+                                            <Button Classes="Ghost" Content="🚌 Swap" Padding="8" Command="{Binding $parent[UserControl].DataContext.OpenSwapBusDialogCommand}" CommandParameter="{Binding}" ToolTip.Tip="Swap Bus"/>
                                             <Button Classes="Ghost" Content="✏️" Padding="8" Click="OnEditSchedule" ToolTip.Tip="Edit"/>
                                             <Button Classes="Ghost" Content="🗑️" Padding="8" Click="OnDeleteSchedule" Foreground="Red" ToolTip.Tip="Delete"/>
                                         </StackPanel>
@@ -122,6 +123,35 @@
                     </StackPanel>
                 </StackPanel>
                 </ScrollViewer>
+            </Border>
+
+            <!-- Swap Bus Dialog -->
+            <Border Grid.Column="1" Classes="Card" 
+                    IsVisible="{Binding IsSwapMode}" Width="400">
+                <StackPanel Spacing="15">
+                    <TextBlock Text="Swap Bus" FontSize="18" FontWeight="Bold" Foreground="{StaticResource DarkTextBrush}"/>
+                    <TextBlock Text="{Binding SwapMessage}" Foreground="{StaticResource PrimaryBlueBrush}" TextWrapping="Wrap"/>
+                    
+                    <StackPanel Spacing="5">
+                        <TextBlock Text="Select New Bus" Foreground="{StaticResource LightTextBrush}" FontSize="12"/>
+                        <ComboBox ItemsSource="{Binding Buses}" SelectedItem="{Binding SelectedSwapBus}" 
+                                  HorizontalAlignment="Stretch" PlaceholderText="Select Replacement Bus">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" Spacing="10">
+                                        <TextBlock Text="{Binding PlateNumber}" FontWeight="Bold"/>
+                                        <TextBlock Text="{Binding Capacity, StringFormat='(Cap: {0})'}" Foreground="Gray"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
+                    
+                    <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
+                        <Button Classes="Ghost" Content="Cancel" Command="{Binding CancelSwapCommand}"/>
+                        <Button Content="Confirm Swap" Command="{Binding PerformSwapBusCommand}" Background="#E67E22"/>
+                    </StackPanel>
+                </StackPanel>
             </Border>
         </Grid>
     </Grid>

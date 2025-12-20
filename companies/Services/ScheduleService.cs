@@ -38,5 +38,14 @@ public class ScheduleService : ApiService
     {
         await DeleteAsync($"schedules/{id}");
     }
+
+    public async Task SwapBusAsync(string scheduleId, string newBusId)
+    {
+        var payload = new { new_bus_id = newBusId };
+        // Assuming PostAsync handles generic object serialization for the body
+        // and expecting a response we might not use, or just success.
+        // We'll use PostAsync<object> to fire it.
+        await PostAsync<object>($"schedules/{scheduleId}/swap-bus", payload);
+    }
 }
 

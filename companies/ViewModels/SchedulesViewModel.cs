@@ -62,6 +62,20 @@ public partial class SchedulesViewModel : ViewModelBase
     [ObservableProperty]
     private DateTime? _departureDate;
 
+    // --- Swap Bus UI ---
+    [ObservableProperty]
+    private bool _isSwapMode = false;
+
+    [ObservableProperty]
+    private Schedule? _swapTargetSchedule;
+
+    [ObservableProperty]
+    private Bus? _selectedSwapBus;
+
+    [ObservableProperty]
+    private string _swapMessage = string.Empty;
+
+
     [ObservableProperty]
     private TimeSpan? _departureTimeSpan;
 
@@ -96,7 +110,7 @@ public partial class SchedulesViewModel : ViewModelBase
             Schedules = new ObservableCollection<Schedule>(await _scheduleService.GetAllSchedulesAsync());
             Buses = new ObservableCollection<Bus>(await _busService.GetAllBusesAsync());
             Routes = new ObservableCollection<Route>(await _routeService.GetAllRoutesAsync());
-            
+
             if (!string.IsNullOrEmpty(SelectedRouteId))
             {
                 RouteSegments = new ObservableCollection<RouteSegment>(
@@ -183,11 +197,11 @@ public partial class SchedulesViewModel : ViewModelBase
             ArrivalDate = schedule.ArrivalTime.Value.Date;
             ArrivalTimeSpan = schedule.ArrivalTime.Value.TimeOfDay;
         }
-        
+
         // Load bus and route segment
         SelectedBus = Buses.FirstOrDefault(b => b.Id == schedule.BusId);
         SelectedRouteSegment = RouteSegments.FirstOrDefault(rs => rs.Id == schedule.RouteSegmentId);
-        
+
         IsEditMode = true;
         ErrorMessage = string.Empty;
     }
@@ -290,21 +304,21 @@ public partial class SchedulesViewModel : ViewModelBase
             // We need Station IDs to create a segment. `Route` model doesn't seem to have `OriginStationId` and `DestinationStationId`.
             // Check `RoutesScheme.py`: `RouteResponse` usually has IDs or nested objects.
             // If I only have names, I can't easily create a segment without fetching stations or route details.
-            
+
             // Allow me to cheat slightly: I will fetch the route by ID again, hoping it returns IDs? 
             // Or I will iterate existing Stations to find the matching IDs.
-            
+
             var stations = await _stationService.GetAllStationsAsync();
-            var originParams = SelectedRoute.Origin; 
+            var originParams = SelectedRoute.Origin;
             var destParams = SelectedRoute.Destination;
-            
+
             var originStation = stations.FirstOrDefault(s => s.Name == originParams || s.Id == originParams); // flexible
             var destStation = stations.FirstOrDefault(s => s.Name == destParams || s.Id == destParams);
 
             if (originStation == null || destStation == null)
             {
-               ErrorMessage = "Could not identify station IDs for this route to create a segment.";
-               return;
+                ErrorMessage = "Could not identify station IDs for this route to create a segment.";
+                return;
             }
 
             var newSegment = new RouteSegmentCreate
@@ -317,7 +331,7 @@ public partial class SchedulesViewModel : ViewModelBase
             };
 
             await _routeSegmentService.CreateSegmentAsync(newSegment);
-            
+
             // Refresh segments
             await RouteChangedAsync();
             ErrorMessage = "Default segment created.";
@@ -355,6 +369,60 @@ public partial class SchedulesViewModel : ViewModelBase
     private async Task RefreshAsync()
     {
         await LoadDataAsync();
+    }
+
+    [RelayCommand]
+    private void OpenSwapBusDialog(Schedule schedule)
+    {
+        SwapTargetSchedule = schedule;
+        SelectedSwapBus = null;
+        IsSwapMode = true;
+        IsEditMode = false;
+        SwapMessage = $"Swapping bus for trip: {schedule.RouteSegmentId} at {schedule.DepartureTime:g}";
+    }
+
+    [RelayCommand]
+    private void CancelSwap()
+    {
+        IsSwapMode = false;
+        SwapTargetSchedule = null;
+        SelectedSwapBus = null;
+        SwapMessage = "";
+    }
+
+    [RelayCommand]
+    private async Task PerformSwapBusAsync()
+    {
+        if (SwapTargetSchedule == null || SelectedSwapBus == null)
+        {
+            SwapMessage = "Please select a replacement bus.";
+            return;
+        }
+
+        if (SelectedSwapBus.Id == SwapTargetSchedule.BusId)
+        {
+            SwapMessage = "Please select a DIFFERENT bus.";
+            return;
+        }
+
+        IsLoading = true;
+        try
+        {
+            // Call Service
+            await _scheduleService.SwapBusAsync(SwapTargetSchedule.Id, SelectedSwapBus.Id);
+
+            SwapMessage = "Swap Successful!";
+            IsSwapMode = false;
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            SwapMessage = $"Swap Failed: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
     }
 }
 
