@@ -2,8 +2,8 @@
 from fastapi import FastAPI, Request
 import logging
 import os
-from .routers import email, sms
-from .core.consumer import start_rabbitmq_consumer
+from routers import email, sms
+from core.consumer import start_rabbitmq_consumer
 import asyncio
 
 # Setup Logging
