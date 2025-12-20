@@ -218,6 +218,35 @@ services:
       - ticketing-net
     restart: always
 
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - ticketing-net
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: services/notification-service/Dockerfile
+    image: bienvenugashema/ticketing-notification-service:latest
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+    ports:
+      - "8010:8010"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - ticketing-net
+    restart: always
+
 networks:
   ticketing-net:
     driver: bridge

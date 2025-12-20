@@ -19,13 +19,28 @@ def get_db():
 
 router = APIRouter(prefix="/api/v1/payments", tags=["Payments"])
 
+import redis
+import json
+import os
+
+# Redis for Idempotency
+REDIS_URL = os.environ.get("REDIS_URL", "redis://redis:6379")
+redis_client = redis.StrictRedis.from_url(REDIS_URL, decode_responses=True)
+
 @router.post("/mock", response_model=PaymentResponse, status_code=status.HTTP_201_CREATED)
 async def process_mock_payment(
     payment_req: PaymentCreate,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
-    # ... logic copied ...
+    # 1. Idempotency Check
+    # If client sends 'idempotency_key', we check recent transactions
+    if payment_req.idempotency_key:
+        cached_result = redis_client.get(f"payment:idempotency:{payment_req.idempotency_key}")
+        if cached_result:
+             # Return PREVIOUS result immediately
+             return json.loads(cached_result)
+
     ticket_id = str(payment_req.ticket_id)
     
     # In microservices, Ticket might be in another DB. 
@@ -57,7 +72,8 @@ async def process_mock_payment(
         amount=amount,
         provider=payment_req.provider,
         status=PaymentStatus.success, 
-        created_at=datetime.now(UTC)
+        created_at=datetime.now(UTC),
+        idempotency_key=payment_req.idempotency_key # Save key to DB too for audit
     )
     
     db.add(new_payment)
@@ -65,5 +81,23 @@ async def process_mock_payment(
     
     db.commit()
     db.refresh(new_payment)
+    
+    # 2. Serialize and Cache Response
+    # Because Payment object is not JSON serializable, we convert to dict using schema dump or simple dict
+    response_data = {
+        "id": new_payment.id,
+        "ticket_id": new_payment.ticket_id,
+        "amount": new_payment.amount,
+        "status": new_payment.status.value,
+        "provider": new_payment.provider,
+        "created_at": new_payment.created_at.isoformat()
+    }
+    
+    if payment_req.idempotency_key:
+        redis_client.setex(
+            f"payment:idempotency:{payment_req.idempotency_key}", 
+            86400, # 24 hours
+            json.dumps(response_data)
+        )
     
     return new_payment

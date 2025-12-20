@@ -13,6 +13,7 @@ class PaymentCreate(BaseModel):
     ticket_id: UUID
     phone_number: str | None = None
     provider: PaymentProvider
+    idempotency_key: str | None = None
 
 class PaymentResponse(BaseModel):
     id: str

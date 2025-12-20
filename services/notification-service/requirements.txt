@@ -1,0 +1,8 @@
+
+# Service Dependencies
+fastapi
+uvicorn
+aio-pika
+pydantic
+email-validator
+requests

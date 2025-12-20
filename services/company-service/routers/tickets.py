@@ -62,7 +62,8 @@ async def create_ticket(ticket_req: TicketCreate, db: Session = Depends(get_db))
     if not company_id:
         raise HTTPException(status_code=500, detail="Route is not associated with a company")
 
-    bus = db.query(Bus).filter(Bus.id == str(ticket_req.bus_id), Bus.company_id == company_id).first()
+    # LOCKING: Use with_for_update() to prevent race conditions (double booking)
+    bus = db.query(Bus).filter(Bus.id == str(ticket_req.bus_id), Bus.company_id == company_id).with_for_update().first()
     if not bus:
         raise HTTPException(status_code=404, detail="Bus not found or does not belong to the route's company")
 
