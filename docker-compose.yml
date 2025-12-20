@@ -227,6 +227,8 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+    environment:
+      - RABBITMQ_ERLANG_COOKIE=secret_cookie_mwimule
     networks:
       - ticketing-net
     healthcheck:

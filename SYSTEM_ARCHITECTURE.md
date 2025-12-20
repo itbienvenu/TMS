@@ -1,7 +1,7 @@
-# Ticketing System - Architecture & Technical Documentation
+# Mwimule Ticketing System - Architecture & Technical Documentation
 
 ## 1. Executive Summary
-Ticketing System is a high-performance, distributed ticketing and fleet management system built on a microservices architecture. It handles everything from route planning and bus scheduling to secure ticket booking, payments, and real-time transit notifications.
+Mwimule is a high-performance, distributed ticketing and fleet management system built on a microservices architecture. It handles everything from route planning and bus scheduling to secure ticket booking, payments, and real-time transit notifications.
 
 ---
 
