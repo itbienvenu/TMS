@@ -52,8 +52,8 @@ async def company_login_start(
     # Allow login by either 'login_email' (username) OR 'email' (personal email)
     company_user = db.query(CompanyUser).filter(
         or_(
-            CompanyUser.login_email == payload.login_email,
-            CompanyUser.email == payload.login_email
+            CompanyUser.login_email == payload.email,
+            CompanyUser.email == payload.email
         )
     ).first()
     
@@ -148,8 +148,8 @@ async def company_login_direct(
     """
     company_user = db.query(CompanyUser).filter(
         or_(
-            CompanyUser.login_email == payload.login_email,
-            CompanyUser.email == payload.login_email
+            CompanyUser.login_email == payload.email,
+            CompanyUser.email == payload.email
         )
     ).first()
     

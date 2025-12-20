@@ -21,8 +21,8 @@ class LoginUser(BaseModel):
 
 
 class CompanyLoginStart(BaseModel):
-    # Company-issued login email/identifier
-    login_email: EmailStr
+    # Front-end sends 'email', backend logic uses it as login identifier
+    email: EmailStr
     password: str
 
 
