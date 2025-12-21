@@ -2,7 +2,7 @@
 
 **Version:** 1.3.0  
 **Date:** December 20, 2025  
-**Author:** Antigravity AI  
+**Author:** MWIMULE Bienvenu  
 
 ---
 
