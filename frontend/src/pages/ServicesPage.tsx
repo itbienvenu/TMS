@@ -173,7 +173,7 @@ const ServicesPage = () => {
                                     <button
                                         className="btn btn-dark flex-grow-1 fw-medium"
                                         onClick={() => handleBook(schedule)}
-                                        disabled={bookTicketMutation.isPending || schedule.available_seats <= 0 || (schedule.status && schedule.status !== 'Scheduled' && schedule.status !== 'Boarding')}
+                                        disabled={bookTicketMutation.isPending || schedule.available_seats <= 0 || (!!schedule.status && schedule.status !== 'Scheduled' && schedule.status !== 'Boarding')}
                                     >
                                         {bookTicketMutation.isPending && selectedSchedule?.id === schedule.id ? 'Booking...'
                                             : schedule.available_seats <= 0 ? 'Full'

@@ -24,6 +24,7 @@ export interface ScheduleSearchResult {
     arrival_time: string;
     company_id: string;
     company_name: string;
+    status?: string;
 }
 
 export const schedulesApi = {
@@ -57,7 +58,7 @@ export const schedulesApi = {
         if (params.origin_id) queryParams.append('origin_id', params.origin_id);
         if (params.destination_id) queryParams.append('destination_id', params.destination_id);
         if (params.date) queryParams.append('date', params.date);
-        
+
         const response = await api.get(`/schedules/search?${queryParams.toString()}`);
         return response.data;
     },
